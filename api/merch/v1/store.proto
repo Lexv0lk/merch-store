@@ -1,0 +1,63 @@
+﻿syntax = "proto3";
+
+package merch.v1;
+
+option go_package = "github.com/Lexv0lk/merch-store/api/merch/v1;merchapi";
+
+// Service
+
+service MerchStoreService {
+  rpc GetUserInfo(GetUserInfoRequest) returns (GetUserInfoResponse);
+  rpc SendCoins(SendCoinsRequest) returns (SendCoinsResponse);
+  rpc BuyItem(BuyItemRequest) returns (BuyItemResponse);
+}
+
+// Messages
+
+message GetUserInfoRequest {
+}
+
+message GetUserInfoResponse {
+  uint32 balance = 1;
+  repeated InventoryItem inventory = 2;
+  CoinHistory coinHistory = 3;
+}
+
+message SendCoinsRequest {
+  string toUsername = 1;
+  uint32 amount = 2;
+}
+
+message SendCoinsResponse {
+  bool success = 1;
+}
+
+message BuyItemRequest {
+  string itemName = 1;
+}
+
+message BuyItemResponse {
+  bool success = 1;
+}
+
+// Help structures
+
+message InventoryItem {
+  string name = 1;
+  uint32 quantity = 2;
+}
+
+message CoinHistory {
+  repeated ReceivedCoinsInfo received = 1;
+  repeated SentCoinsInfo sent = 2;
+}
+
+message ReceivedCoinsInfo {
+  string fromUsername = 1;
+  uint32 amount = 2;
+}
+
+message SentCoinsInfo {
+  string toUsername = 1;
+  uint32 amount = 2;
+}

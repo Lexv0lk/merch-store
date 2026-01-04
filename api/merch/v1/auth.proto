@@ -1,0 +1,22 @@
+﻿syntax = "proto3";
+
+package merch.v1;
+
+option go_package = "github.com/Lexv0lk/merch-store/api/merch/v1;merchapi";
+
+// Service
+
+service AuthService {
+  rpc Authenticate(AuthRequest) returns (AuthResponse);
+}
+
+// Messages
+
+message AuthRequest {
+  string username = 1;
+  string password = 2;
+}
+
+message AuthResponse {
+  string token = 1;
+}
