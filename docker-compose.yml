@@ -1,0 +1,28 @@
+﻿services:
+  postgres:
+    container_name: postgres
+    image: "postgres:16-alpine"
+    profiles: ["app", "infra"]
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: merch_store_db
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - backend-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d merch_store_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+networks:
+  backend-net:
+    driver: bridge
+
+volumes:
+  postgres_data:
