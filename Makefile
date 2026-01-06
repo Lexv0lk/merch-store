@@ -1,5 +1,5 @@
 ﻿COVERAGE_FILE ?= coverage.out
-DB_DSN ?= "postgres://admin:password@localhost:5432/merch_store_db?sslmode=disable"
+DB_DSN ?= "postgres://admin:password@localhost:5433/merch_store_db?sslmode=disable"
 
 .PHONY: build-app-up
 build-app-up:
