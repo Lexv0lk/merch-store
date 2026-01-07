@@ -9,7 +9,7 @@ CREATE TABLE users (
 
 CREATE TABLE goods (
     id SERIAL PRIMARY KEY,
-    name TEXT NOT NULL,
+    name TEXT NOT NULL UNIQUE,
     price INTEGER NOT NULL
 );
 

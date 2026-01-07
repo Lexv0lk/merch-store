@@ -20,7 +20,7 @@ func NewUserInfoCase(infoFetcher domain.UserInfoFetcher, logger logging.Logger) 
 	}
 }
 
-func (uic *UserInfoCase) GetUserInfo(ctx context.Context, userId string) (domain.TotalUserInfo, error) {
+func (uic *UserInfoCase) GetUserInfo(ctx context.Context, userId int) (domain.TotalUserInfo, error) {
 	group, groupCtx := errgroup.WithContext(ctx)
 
 	var mainInfo domain.MainUserInfo

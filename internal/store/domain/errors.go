@@ -50,3 +50,20 @@ func (e *UserNotFoundError) Is(target error) bool {
 }
 
 //endregion
+
+//region GoodNotFoundError
+
+type GoodNotFoundError struct {
+	Msg string
+}
+
+func (e *GoodNotFoundError) Error() string {
+	return e.Msg
+}
+
+func (e *GoodNotFoundError) Is(target error) bool {
+	_, ok := target.(*GoodNotFoundError)
+	return ok
+}
+
+//endregion

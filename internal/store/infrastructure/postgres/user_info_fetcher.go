@@ -26,7 +26,7 @@ func NewUserInfoFetcher(querier domain.Querier, logger logging.Logger) *UserInfo
 	}
 }
 
-func (uif *UserInfoFetcher) FetchMainUserInfo(ctx context.Context, userId string) (domain.MainUserInfo, error) {
+func (uif *UserInfoFetcher) FetchMainUserInfo(ctx context.Context, userId int) (domain.MainUserInfo, error) {
 	sql := `SELECT username, balance FROM users WHERE id = $1`
 	var userInfo domain.MainUserInfo
 	err := uif.querier.QueryRow(ctx, sql, userId).Scan(&userInfo.Username, &userInfo.Balance)
@@ -37,7 +37,7 @@ func (uif *UserInfoFetcher) FetchMainUserInfo(ctx context.Context, userId string
 	return userInfo, nil
 }
 
-func (uif *UserInfoFetcher) FetchUserPurchases(ctx context.Context, userId string) (map[domain.Good]int, error) {
+func (uif *UserInfoFetcher) FetchUserPurchases(ctx context.Context, userId int) (map[domain.Good]int, error) {
 	sql := `SELECT g.name, COUNT(*) FROM purchases p
 			JOIN goods g ON p.good_id = g.id
 			WHERE p.user_id = $1
@@ -62,7 +62,7 @@ func (uif *UserInfoFetcher) FetchUserPurchases(ctx context.Context, userId strin
 	return goods, nil
 }
 
-func (uif *UserInfoFetcher) FetchUserCoinTransfers(ctx context.Context, userId string) (domain.CoinTransferHistory, error) {
+func (uif *UserInfoFetcher) FetchUserCoinTransfers(ctx context.Context, userId int) (domain.CoinTransferHistory, error) {
 	sql := `
 SELECT u_from.username, u_from.username, u_to.username, amount FROM transactions
 JOIN users u_from ON transactions.from_user_id = u_from.id

@@ -3,7 +3,7 @@ package domain
 import "context"
 
 type UserInfoFetcher interface {
-	FetchMainUserInfo(ctx context.Context, userId string) (MainUserInfo, error)
+	FetchMainUserInfo(ctx context.Context, userId int) (MainUserInfo, error)
 	FetchUserPurchases(ctx context.Context, username string) (map[Good]int, error)
 	FetchUserCoinTransfers(ctx context.Context, username string) (CoinTransferHistory, error)
 }
