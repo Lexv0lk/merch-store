@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/Lexv0lk/merch-store/internal/pkg/database"
 	"github.com/Lexv0lk/merch-store/internal/pkg/logging"
 	"github.com/Lexv0lk/merch-store/internal/store/domain"
 	"github.com/jackc/pgx/v5"
@@ -17,11 +18,11 @@ type userInfo struct {
 }
 
 type CoinsTransferer struct {
-	txBeginner domain.TxBeginner
+	txBeginner database.TxBeginner
 	logger     logging.Logger
 }
 
-func NewCoinsTransferer(txBeginner domain.TxBeginner, logger logging.Logger) *CoinsTransferer {
+func NewCoinsTransferer(txBeginner database.TxBeginner, logger logging.Logger) *CoinsTransferer {
 	return &CoinsTransferer{
 		txBeginner: txBeginner,
 		logger:     logger,

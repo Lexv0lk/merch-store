@@ -3,6 +3,7 @@ package postgres
 import (
 	"context"
 
+	"github.com/Lexv0lk/merch-store/internal/pkg/database"
 	"github.com/Lexv0lk/merch-store/internal/pkg/logging"
 	"github.com/Lexv0lk/merch-store/internal/store/domain"
 )
@@ -15,11 +16,11 @@ type transaction struct {
 }
 
 type UserInfoFetcher struct {
-	querier domain.Querier
+	querier database.Querier
 	logger  logging.Logger
 }
 
-func NewUserInfoFetcher(querier domain.Querier, logger logging.Logger) *UserInfoFetcher {
+func NewUserInfoFetcher(querier database.Querier, logger logging.Logger) *UserInfoFetcher {
 	return &UserInfoFetcher{
 		querier: querier,
 		logger:  logger,

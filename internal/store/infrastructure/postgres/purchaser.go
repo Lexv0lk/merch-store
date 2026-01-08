@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/Lexv0lk/merch-store/internal/pkg/database"
 	"github.com/Lexv0lk/merch-store/internal/pkg/logging"
 	"github.com/Lexv0lk/merch-store/internal/store/domain"
 	"github.com/jackc/pgx/v5"
@@ -17,11 +18,11 @@ type goodInfo struct {
 }
 
 type PurchaseHandler struct {
-	queryTxBeginner domain.QueryTxBeginner
+	queryTxBeginner database.QueryTxBeginner
 	logger          logging.Logger
 }
 
-func NewPurchaseHandler(queryTxBeginner domain.QueryTxBeginner, logger logging.Logger) *PurchaseHandler {
+func NewPurchaseHandler(queryTxBeginner database.QueryTxBeginner, logger logging.Logger) *PurchaseHandler {
 	return &PurchaseHandler{
 		queryTxBeginner: queryTxBeginner,
 		logger:          logger,
