@@ -8,12 +8,19 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
+// TODO: move to env variables
+const TokenContextKey = "token-key"
+
 type Authenticator interface {
 	Authenticate(ctx context.Context, username, password string) (string, error)
 }
 
 type TokenIssuer interface {
 	IssueToken(secret []byte, userID int, username string, timeLimit time.Duration) (string, error)
+}
+
+type TokenParser interface {
+	ParseToken(secret []byte, tokenString string) (*Claims, error)
 }
 
 type Claims struct {

@@ -21,6 +21,7 @@ import (
 
 const (
 	networkProtocol = "tcp"
+	secretKey       = "test-secret" //TODO: change to env variable
 )
 
 func main() {
@@ -73,7 +74,7 @@ func startGRPCServer(
 	sendCoinsCase *application.SendCoinsCase,
 	userInfoCase *application.UserInfoCase,
 	logger logging.Logger,
-	tokenParser *jwt.JWTTokenParser,
+	tokenParser jwt.TokenParser,
 	port string,
 ) {
 	lis, err := net.Listen(networkProtocol, port)
@@ -82,7 +83,10 @@ func startGRPCServer(
 		return
 	}
 
-	grpcServer := grpc.NewServer()
+	authInterceptorFabric := grpcwrap.NewAuthInterceptorFabric(secretKey, tokenParser, logger)
+	grpcServer := grpc.NewServer(
+		grpc.UnaryInterceptor(authInterceptorFabric.GetInterceptor()),
+	)
 	storeServer := grpcwrap.NewStoreServerGRPC(purchaseCase, sendCoinsCase, userInfoCase, logger, tokenParser)
 
 	merchapi.RegisterMerchStoreServiceServer(grpcServer, storeServer)

@@ -16,7 +16,7 @@ func NewPurchaseCase(purchaseHandler domain.PurchaseHandler) *PurchaseCase {
 	}
 }
 
-func (pc *PurchaseCase) PurchaseGood(ctx context.Context, userId int, goodName string) error {
+func (pc *PurchaseCase) BuyItem(ctx context.Context, userId int, goodName string) error {
 	err := pc.purchaseHandler.HandlePurchase(ctx, userId, goodName)
 	if err != nil {
 		return err
