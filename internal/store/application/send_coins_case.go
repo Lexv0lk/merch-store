@@ -16,7 +16,7 @@ func NewSendCoinsCase(coinsTransferer domain.CoinsTransferer) *SendCoinsCase {
 	}
 }
 
-func (sc *SendCoinsCase) SendCoins(ctx context.Context, fromUsername string, toUsername string, amount int) error {
+func (sc *SendCoinsCase) SendCoins(ctx context.Context, fromUsername string, toUsername string, amount uint32) error {
 	err := sc.coinsTransferer.TransferCoins(ctx, fromUsername, toUsername, amount)
 	if err != nil {
 		return err

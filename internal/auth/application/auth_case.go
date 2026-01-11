@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/Lexv0lk/merch-store/internal/auth/domain"
+	"github.com/Lexv0lk/merch-store/internal/pkg/jwt"
 )
 
 const (
@@ -16,13 +17,13 @@ const (
 type Authenticator struct {
 	usersRepository domain.UsersRepository
 	passwordHasher  domain.PasswordHasher
-	tokenIssuer     domain.TokenIssuer
+	tokenIssuer     jwt.TokenIssuer
 }
 
 func NewAuthenticator(
 	usersRepository domain.UsersRepository,
 	passwordHasher domain.PasswordHasher,
-	tokenIssuer domain.TokenIssuer,
+	tokenIssuer jwt.TokenIssuer,
 ) *Authenticator {
 	return &Authenticator{
 		usersRepository: usersRepository,

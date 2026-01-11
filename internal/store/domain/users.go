@@ -4,8 +4,8 @@ import "context"
 
 type UserInfoFetcher interface {
 	FetchMainUserInfo(ctx context.Context, userId int) (MainUserInfo, error)
-	FetchUserPurchases(ctx context.Context, username string) (map[Good]int, error)
-	FetchUserCoinTransfers(ctx context.Context, username string) (CoinTransferHistory, error)
+	FetchUserPurchases(ctx context.Context, userId int) (map[Good]uint32, error)
+	FetchUserCoinTransfers(ctx context.Context, userId int) (CoinTransferHistory, error)
 }
 
 type MainUserInfo struct {
@@ -16,7 +16,7 @@ type MainUserInfo struct {
 type TotalUserInfo struct {
 	Username            string
 	Balance             uint32
-	Goods               map[Good]int
+	Goods               map[Good]uint32
 	CoinTransferHistory CoinTransferHistory
 }
 
@@ -31,5 +31,5 @@ type CoinTransferHistory struct {
 
 type DirectTransfer struct {
 	TargetName string
-	Amount     int
+	Amount     uint32
 }

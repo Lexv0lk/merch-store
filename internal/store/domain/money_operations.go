@@ -3,7 +3,7 @@ package domain
 import "context"
 
 type CoinsTransferer interface {
-	TransferCoins(ctx context.Context, fromUsername string, toUsername string, amount int) error
+	TransferCoins(ctx context.Context, fromUsername string, toUsername string, amount uint32) error
 }
 
 type PurchaseHandler interface {

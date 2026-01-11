@@ -14,7 +14,7 @@ import (
 type userInfo struct {
 	Id       int
 	Username string
-	Balance  int
+	Balance  uint32
 }
 
 type CoinsTransferer struct {
@@ -29,7 +29,7 @@ func NewCoinsTransferer(txBeginner database.TxBeginner, logger logging.Logger) *
 	}
 }
 
-func (pct *CoinsTransferer) TransferCoins(ctx context.Context, fromUsername string, toUsername string, amount int) error {
+func (pct *CoinsTransferer) TransferCoins(ctx context.Context, fromUsername string, toUsername string, amount uint32) error {
 	if fromUsername == toUsername {
 		return &domain.InvalidArgumentsError{Msg: "fromUsername must differ from toUsername"}
 	} else if amount <= 0 {

@@ -38,7 +38,13 @@ func (uif *UserInfoFetcher) FetchMainUserInfo(ctx context.Context, userId int) (
 	return userInfo, nil
 }
 
-func (uif *UserInfoFetcher) FetchUserPurchases(ctx context.Context, userId int) (map[domain.Good]int, error) {
+func (uif *UserInfoFetcher) FetchUserPurchases(ctx context.Context, userId int) (map[domain.Good]uint32, error) {
+	defer func() {
+		if r := recover(); r != nil {
+			uif.logger.Error("panic recovered in FetchUserPurchases", "error", r)
+		}
+	}()
+
 	sql := `SELECT g.name, COUNT(*) FROM purchases p
 			JOIN goods g ON p.good_id = g.id
 			WHERE p.user_id = $1
@@ -49,7 +55,7 @@ func (uif *UserInfoFetcher) FetchUserPurchases(ctx context.Context, userId int) 
 	}
 	defer rows.Close()
 
-	goods := make(map[domain.Good]int)
+	goods := make(map[domain.Good]uint32)
 	for rows.Next() {
 		var good domain.Good
 		var count int
@@ -57,13 +63,19 @@ func (uif *UserInfoFetcher) FetchUserPurchases(ctx context.Context, userId int) 
 			return nil, err
 		}
 
-		goods[good] = count
+		goods[good] = uint32(count)
 	}
 
 	return goods, nil
 }
 
 func (uif *UserInfoFetcher) FetchUserCoinTransfers(ctx context.Context, userId int) (domain.CoinTransferHistory, error) {
+	defer func() {
+		if r := recover(); r != nil {
+			uif.logger.Error("panic recovered in FetchUserCoinTransfers", "error", r)
+		}
+	}()
+
 	sql := `
 SELECT u_from.username, u_from.username, u_to.username, amount FROM transactions
 JOIN users u_from ON transactions.from_user_id = u_from.id
@@ -97,12 +109,12 @@ WHERE to_user_id = $1;
 		if transfer.toUsername == transfer.targetUsername {
 			transferHistory.IncomingTransfers = append(transferHistory.IncomingTransfers, domain.DirectTransfer{
 				TargetName: transfer.fromUsername,
-				Amount:     transfer.amount,
+				Amount:     uint32(transfer.amount),
 			})
 		} else {
 			transferHistory.OutcomingTransfers = append(transferHistory.OutcomingTransfers, domain.DirectTransfer{
 				TargetName: transfer.toUsername,
-				Amount:     transfer.amount,
+				Amount:     uint32(transfer.amount),
 			})
 		}
 	}

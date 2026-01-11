@@ -5,7 +5,7 @@ import "github.com/alexedwards/argon2id"
 type ArgonPasswordHasher struct {
 }
 
-func NewPasswordHasher() *ArgonPasswordHasher {
+func NewArgonPasswordHasher() *ArgonPasswordHasher {
 	return &ArgonPasswordHasher{}
 }
 

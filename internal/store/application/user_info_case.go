@@ -24,7 +24,7 @@ func (uic *UserInfoCase) GetUserInfo(ctx context.Context, userId int) (domain.To
 	group, groupCtx := errgroup.WithContext(ctx)
 
 	var mainInfo domain.MainUserInfo
-	var purchases map[domain.Good]int
+	var purchases map[domain.Good]uint32
 	var transfers domain.CoinTransferHistory
 
 	group.Go(func() error {
@@ -35,13 +35,13 @@ func (uic *UserInfoCase) GetUserInfo(ctx context.Context, userId int) (domain.To
 
 	group.Go(func() error {
 		var err error
-		purchases, err = uic.infoFetcher.FetchUserPurchases(groupCtx, mainInfo.Username)
+		purchases, err = uic.infoFetcher.FetchUserPurchases(groupCtx, userId)
 		return err
 	})
 
 	group.Go(func() error {
 		var err error
-		transfers, err = uic.infoFetcher.FetchUserCoinTransfers(groupCtx, mainInfo.Username)
+		transfers, err = uic.infoFetcher.FetchUserCoinTransfers(groupCtx, userId)
 		return err
 	})
 

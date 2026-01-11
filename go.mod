@@ -3,6 +3,8 @@ module github.com/Lexv0lk/merch-store
 go 1.25.1
 
 require (
+	github.com/alexedwards/argon2id v1.0.0
+	github.com/golang-jwt/jwt/v5 v5.3.0
 	github.com/jackc/pgx/v5 v5.8.0
 	golang.org/x/sync v0.18.0
 	google.golang.org/grpc v1.78.0
@@ -10,8 +12,6 @@ require (
 )
 
 require (
-	github.com/alexedwards/argon2id v1.0.0 // indirect
-	github.com/golang-jwt/jwt/v5 v5.3.0 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
 	golang.org/x/crypto v0.44.0 // indirect

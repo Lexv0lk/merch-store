@@ -22,14 +22,17 @@ func NewUsersRepository(queryExecuter database.QueryExecuter, logger logging.Log
 	}
 }
 
-func (r *UsersRepository) CreateUser(ctx context.Context, username, hashedPassword string, startBalance int) error {
-	creationSQL := `INSERT INTO users (username, password_hash, balance) VALUES ($1, $2, $3)`
-	_, err := r.queryExecuter.Exec(ctx, creationSQL, username, hashedPassword, startBalance)
+func (r *UsersRepository) CreateUser(ctx context.Context, username, hashedPassword string, startBalance int) (domain.UserInfo, error) {
+	creationSQL := `INSERT INTO users (username, password_hash, balance) VALUES ($1, $2, $3) RETURNING (id, username, password_hash, balance)`
+
+	var userInfo domain.UserInfo
+	row := r.queryExecuter.QueryRow(ctx, creationSQL, username, hashedPassword, startBalance)
+	err := row.Scan(&userInfo.ID, &userInfo.Username, &userInfo.PasswordHash, &userInfo.Balance)
 	if err != nil {
-		return err
+		return domain.UserInfo{}, err
 	}
 
-	return nil
+	return userInfo, nil
 }
 
 func (r *UsersRepository) TryGetUserInfo(ctx context.Context, username string) (domain.UserInfo, bool, error) {
