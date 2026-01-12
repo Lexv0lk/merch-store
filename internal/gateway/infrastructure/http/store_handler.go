@@ -9,8 +9,8 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-type sendCointRequestBody struct {
-	ToUsername string `json:"toUsername" binding:"required"`
+type sendCoinRequestBody struct {
+	ToUsername string `json:"toUser" binding:"required"`
 	Amount     uint32 `json:"amount" binding:"required,gt=0"`
 }
 
@@ -46,7 +46,7 @@ func (h *StoreHandler) GetInfo(c *gin.Context) {
 }
 
 func (h *StoreHandler) SendCoin(c *gin.Context) {
-	var body sendCointRequestBody
+	var body sendCoinRequestBody
 
 	if err := c.ShouldBindJSON(&body); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"errors": "invalid request body"})
