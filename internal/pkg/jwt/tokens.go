@@ -8,7 +8,10 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-const TokenContextKey = "token-key"
+const (
+	TokenContextKey  = "token-key"
+	TokenMetadataKey = "authorization"
+)
 
 type Authenticator interface {
 	Authenticate(ctx context.Context, username, password string) (string, error)

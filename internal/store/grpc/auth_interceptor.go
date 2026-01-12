@@ -66,7 +66,7 @@ func getUserToken(ctx context.Context) (string, error) {
 		return "", status.Error(codes.Unauthenticated, "metadata is empty")
 	}
 
-	tokens := md.Get(jwt.TokenContextKey)
+	tokens := md.Get(jwt.TokenMetadataKey)
 	if len(tokens) == 0 {
 		return "", status.Error(codes.Unauthenticated, "authorization token is missing")
 	}

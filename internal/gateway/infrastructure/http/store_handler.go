@@ -25,7 +25,7 @@ func NewStoreHandler(service domain.StoreService) *StoreHandler {
 }
 
 func (h *StoreHandler) GetInfo(c *gin.Context) {
-	info, err := h.service.GetUserInfo(c.Request.Context())
+	info, err := h.service.GetUserInfo(c)
 	if err != nil {
 		st, ok := status.FromError(err)
 		if ok {
@@ -53,7 +53,7 @@ func (h *StoreHandler) SendCoin(c *gin.Context) {
 		return
 	}
 
-	err := h.service.SendCoins(c.Request.Context(), body.ToUsername, body.Amount)
+	err := h.service.SendCoins(c, body.ToUsername, body.Amount)
 	if err != nil {
 		st, ok := status.FromError(err)
 		if ok {
@@ -76,7 +76,7 @@ func (h *StoreHandler) SendCoin(c *gin.Context) {
 func (h *StoreHandler) BuyItem(c *gin.Context) {
 	itemName := c.Param(ItemNameKey)
 
-	err := h.service.BuyItem(c.Request.Context(), itemName)
+	err := h.service.BuyItem(c, itemName)
 	if err != nil {
 		st, ok := status.FromError(err)
 		if ok {

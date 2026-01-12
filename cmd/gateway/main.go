@@ -46,7 +46,11 @@ func main() {
 	}
 	defer grpcAuthConn.Close()
 
-	grpcStoreConn, err := grpc.NewClient(grpcStoreHost+grpcStorePort, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	grpcStoreConn, err := grpc.NewClient(
+		grpcStoreHost+grpcStorePort,
+		grpc.WithUnaryInterceptor(grpcwrap.NewJWTTokenInterceptor),
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	)
 	if err != nil {
 		defaultLogger.Error("error while connecting to store grpc server", "error", err.Error())
 		return
