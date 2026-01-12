@@ -52,7 +52,7 @@ func main() {
 		{
 			authenticated.GET("/info", storeHandler.GetInfo)
 			authenticated.POST("/sendCoin", storeHandler.SendCoin)
-			authenticated.GET("/buy/:item", storeHandler.BuyItem)
+			authenticated.GET("/buy/:"+httpwrap.ItemNameKey, storeHandler.BuyItem)
 		}
 	}
 

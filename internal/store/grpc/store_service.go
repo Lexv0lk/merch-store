@@ -2,6 +2,7 @@ package grpc
 
 import (
 	"context"
+	"errors"
 
 	merchapi "github.com/Lexv0lk/merch-store/gen/merch/v1"
 	"github.com/Lexv0lk/merch-store/internal/pkg/jwt"
@@ -45,6 +46,11 @@ func (s *StoreServerGRPC) GetUserInfo(ctx context.Context, req *merchapi.GetUser
 	userInfo, err := s.userInfoCase.GetUserInfo(ctx, userID)
 	if err != nil {
 		s.logger.Error("failed to get user info", "error", err.Error())
+
+		if errors.Is(err, &domain.UserNotFoundError{}) {
+			return nil, status.Error(codes.NotFound, err.Error())
+		}
+
 		return nil, status.Error(codes.Internal, "internal error")
 	}
 
@@ -57,6 +63,15 @@ func (s *StoreServerGRPC) SendCoins(ctx context.Context, req *merchapi.SendCoins
 	err := s.sendCoinsCase.SendCoins(ctx, username, req.ToUsername, req.Amount)
 	if err != nil {
 		s.logger.Error("failed to send coins", "error", err.Error())
+
+		if errors.Is(err, &domain.InvalidArgumentsError{}) {
+			return nil, status.Error(codes.InvalidArgument, err.Error())
+		} else if errors.Is(err, &domain.UserNotFoundError{}) {
+			return nil, status.Error(codes.NotFound, "user not found")
+		} else if errors.Is(err, &domain.InsufficientBalanceError{}) {
+			return nil, status.Error(codes.FailedPrecondition, "insufficient funds")
+		}
+
 		return nil, status.Error(codes.Internal, "internal error")
 	}
 
@@ -71,6 +86,15 @@ func (s *StoreServerGRPC) BuyItem(ctx context.Context, req *merchapi.BuyItemRequ
 	err := s.purchaseCase.BuyItem(ctx, userID, req.ItemName)
 	if err != nil {
 		s.logger.Error("failed to purchase item", "error", err.Error())
+
+		if errors.Is(err, &domain.GoodNotFoundError{}) {
+			return nil, status.Error(codes.InvalidArgument, "item not found")
+		} else if errors.Is(err, &domain.InsufficientBalanceError{}) {
+			return nil, status.Error(codes.FailedPrecondition, "insufficient funds")
+		} else if errors.Is(err, &domain.UserNotFoundError{}) {
+			return nil, status.Error(codes.NotFound, "user not found")
+		}
+
 		return nil, status.Error(codes.Internal, "internal error")
 	}
 

@@ -2,10 +2,13 @@ package postgres
 
 import (
 	"context"
+	"errors"
+	"fmt"
 
 	"github.com/Lexv0lk/merch-store/internal/pkg/database"
 	"github.com/Lexv0lk/merch-store/internal/pkg/logging"
 	"github.com/Lexv0lk/merch-store/internal/store/domain"
+	"github.com/jackc/pgx/v5"
 )
 
 type transaction struct {
@@ -32,6 +35,10 @@ func (uif *UserInfoFetcher) FetchMainUserInfo(ctx context.Context, userId int) (
 	var userInfo domain.MainUserInfo
 	err := uif.querier.QueryRow(ctx, sql, userId).Scan(&userInfo.Username, &userInfo.Balance)
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return domain.MainUserInfo{}, &domain.UserNotFoundError{Msg: fmt.Sprintf("user with id %d not found", userId)}
+		}
+
 		return domain.MainUserInfo{}, err
 	}
 
