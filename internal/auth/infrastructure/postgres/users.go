@@ -23,7 +23,7 @@ func NewUsersRepository(queryExecuter database.QueryExecuter, logger logging.Log
 }
 
 func (r *UsersRepository) CreateUser(ctx context.Context, username, hashedPassword string, startBalance int) (domain.UserInfo, error) {
-	creationSQL := `INSERT INTO users (username, password_hash, balance) VALUES ($1, $2, $3) RETURNING (id, username, password_hash, balance)`
+	creationSQL := `INSERT INTO users (username, password_hash, balance) VALUES ($1, $2, $3) RETURNING id, username, password_hash, balance`
 
 	var userInfo domain.UserInfo
 	row := r.queryExecuter.QueryRow(ctx, creationSQL, username, hashedPassword, startBalance)
