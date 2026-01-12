@@ -10,25 +10,27 @@ import (
 
 const (
 	tokenTimeLimit = time.Hour
-	secretKey      = "test-secret" //TODO: change to env variable
-	startBalance   = 1000          //TODO: change to env variable
+	startBalance   = 1000
 )
 
 type Authenticator struct {
 	usersRepository domain.UsersRepository
 	passwordHasher  domain.PasswordHasher
 	tokenIssuer     jwt.TokenIssuer
+	secretKey       []byte
 }
 
 func NewAuthenticator(
 	usersRepository domain.UsersRepository,
 	passwordHasher domain.PasswordHasher,
 	tokenIssuer jwt.TokenIssuer,
+	secretKey string,
 ) *Authenticator {
 	return &Authenticator{
 		usersRepository: usersRepository,
 		passwordHasher:  passwordHasher,
 		tokenIssuer:     tokenIssuer,
+		secretKey:       []byte(secretKey),
 	}
 }
 
@@ -59,5 +61,5 @@ func (a *Authenticator) Authenticate(ctx context.Context, username, password str
 		}
 	}
 
-	return a.tokenIssuer.IssueToken([]byte(secretKey), userInfo.ID, userInfo.Username, tokenTimeLimit)
+	return a.tokenIssuer.IssueToken(a.secretKey, userInfo.ID, userInfo.Username, tokenTimeLimit)
 }

@@ -1,6 +1,57 @@
 ﻿services:
+  gateway:
+    container_name: gateway
+    build:
+      context: .
+      dockerfile: build/package/gateway/Dockerfile
+    profiles: ["app"]
+    ports:
+      - "8080:8080"
+    networks:
+      - merch-net
+    env_file:
+      - .env
+    depends_on:
+      auth:
+        condition: service_started
+      store:
+        condition: service_started
+      postgres:
+        condition: service_healthy
+
+  auth:
+    container_name: auth
+    build:
+      context: .
+      dockerfile: build/package/auth/Dockerfile
+    profiles: ["app"]
+    ports:
+      - "9090:9090"
+    networks:
+      - merch-net
+    env_file:
+      - .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  store:
+    container_name: store
+    build:
+      context: .
+      dockerfile: build/package/store/Dockerfile
+    profiles: ["app"]
+    ports:
+      - "9091:9091"
+    networks:
+      - merch-net
+    env_file:
+      - .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+
   postgres:
-    container_name: postgres
     image: "postgres:16-alpine"
     profiles: ["app", "infra"]
     environment:
@@ -12,7 +63,7 @@
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
-      - backend-net
+      - merch-net
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U admin -d merch_store_db"]
       interval: 5s
@@ -21,7 +72,7 @@
       start_period: 10s
 
 networks:
-  backend-net:
+  merch-net:
     driver: bridge
 
 volumes:

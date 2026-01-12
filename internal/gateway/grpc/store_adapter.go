@@ -4,7 +4,7 @@ import (
 	"context"
 
 	merchapi "github.com/Lexv0lk/merch-store/gen/merch/v1"
-	"github.com/Lexv0lk/merch-store/internal/gateaway/domain"
+	"github.com/Lexv0lk/merch-store/internal/gateway/domain"
 	"google.golang.org/grpc"
 )
 

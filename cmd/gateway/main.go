@@ -8,18 +8,16 @@ import (
 	"syscall"
 	"time"
 
-	grpcwrap "github.com/Lexv0lk/merch-store/internal/gateaway/grpc"
-	httpwrap "github.com/Lexv0lk/merch-store/internal/gateaway/infrastructure/http"
+	grpcwrap "github.com/Lexv0lk/merch-store/internal/gateway/grpc"
+	httpwrap "github.com/Lexv0lk/merch-store/internal/gateway/infrastructure/http"
+	"github.com/Lexv0lk/merch-store/internal/pkg/env"
 	"github.com/Lexv0lk/merch-store/internal/pkg/logging"
 	"github.com/gin-gonic/gin"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
 
-// TODO: move to env variables
 const (
-	grpcDSN         = "localhost:9090"
-	port            = ":8080"
 	shutdownTimeout = 5 * time.Second
 )
 
@@ -29,19 +27,38 @@ func main() {
 
 	defaultLogger := logging.StdoutLogger
 
-	grpcConn, err := grpc.NewClient(grpcDSN, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	grpcAuthPort := ":9090"
+	grpcStorePort := ":9091"
+	grpcAuthHost := "localhost"
+	grpcStoreHost := "localhost"
+	httpPort := ":8080"
+
+	env.TrySetFromEnv(env.EnvGrpcAuthPort, &grpcAuthPort)
+	env.TrySetFromEnv(env.EnvGrpcStorePort, &grpcStorePort)
+	env.TrySetFromEnv(env.EnvGrpcAuthHost, &grpcAuthHost)
+	env.TrySetFromEnv(env.EnvGrpcStoreHost, &grpcStoreHost)
+	env.TrySetFromEnv(env.EnvHttpPort, &httpPort)
+
+	grpcAuthConn, err := grpc.NewClient(grpcAuthHost+grpcAuthPort, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
-		defaultLogger.Error("error while connecting to grpc server", "error", err.Error())
+		defaultLogger.Error("error while connecting to auth grpc server", "error", err.Error())
 		return
 	}
-	defer grpcConn.Close()
+	defer grpcAuthConn.Close()
+
+	grpcStoreConn, err := grpc.NewClient(grpcStoreHost+grpcStorePort, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		defaultLogger.Error("error while connecting to store grpc server", "error", err.Error())
+		return
+	}
+	defer grpcStoreConn.Close()
 
 	router := gin.Default()
 
-	authService := grpcwrap.NewAuthAdapter(grpcConn)
+	authService := grpcwrap.NewAuthAdapter(grpcAuthConn)
 	authHandler := httpwrap.NewAuthHandler(authService)
 
-	storeService := grpcwrap.NewStoreAdapter(grpcConn)
+	storeService := grpcwrap.NewStoreAdapter(grpcStoreConn)
 	storeHandler := httpwrap.NewStoreHandler(storeService)
 
 	api := router.Group("/api")
@@ -57,7 +74,7 @@ func main() {
 	}
 
 	server := &http.Server{
-		Addr:    port,
+		Addr:    httpPort,
 		Handler: router,
 	}
 

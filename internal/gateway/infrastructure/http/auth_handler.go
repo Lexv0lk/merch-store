@@ -3,7 +3,7 @@ package http
 import (
 	"net/http"
 
-	"github.com/Lexv0lk/merch-store/internal/gateaway/domain"
+	"github.com/Lexv0lk/merch-store/internal/gateway/domain"
 	"github.com/gin-gonic/gin"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"

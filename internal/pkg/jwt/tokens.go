@@ -8,7 +8,6 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-// TODO: move to env variables
 const TokenContextKey = "token-key"
 
 type Authenticator interface {
