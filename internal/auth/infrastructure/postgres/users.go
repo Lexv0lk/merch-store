@@ -6,19 +6,16 @@ import (
 
 	"github.com/Lexv0lk/merch-store/internal/auth/domain"
 	"github.com/Lexv0lk/merch-store/internal/pkg/database"
-	"github.com/Lexv0lk/merch-store/internal/pkg/logging"
 	"github.com/jackc/pgx/v5"
 )
 
 type UsersRepository struct {
 	queryExecuter database.QueryExecuter
-	logger        logging.Logger
 }
 
-func NewUsersRepository(queryExecuter database.QueryExecuter, logger logging.Logger) *UsersRepository {
+func NewUsersRepository(queryExecuter database.QueryExecuter) *UsersRepository {
 	return &UsersRepository{
 		queryExecuter: queryExecuter,
-		logger:        logger,
 	}
 }
 

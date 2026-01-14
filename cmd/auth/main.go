@@ -58,7 +58,7 @@ func main() {
 
 	passwordHasher := domain.NewArgonPasswordHasher()
 	tokenIssuer := jwt.NewJWTTokenIssuer()
-	postgresUserRepository := postgres.NewUsersRepository(dbpool, defaultLogger)
+	postgresUserRepository := postgres.NewUsersRepository(dbpool)
 
 	authenticator := application.NewAuthenticator(postgresUserRepository, passwordHasher, tokenIssuer, secretKey)
 
