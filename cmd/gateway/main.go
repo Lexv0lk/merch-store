@@ -8,6 +8,7 @@ import (
 	"syscall"
 	"time"
 
+	merchapi "github.com/Lexv0lk/merch-store/gen/merch/v1"
 	grpcwrap "github.com/Lexv0lk/merch-store/internal/gateway/grpc"
 	httpwrap "github.com/Lexv0lk/merch-store/internal/gateway/infrastructure/http"
 	"github.com/Lexv0lk/merch-store/internal/pkg/env"
@@ -59,10 +60,10 @@ func main() {
 
 	router := gin.Default()
 
-	authService := grpcwrap.NewAuthAdapter(grpcAuthConn)
+	authService := grpcwrap.NewAuthAdapter(merchapi.NewAuthServiceClient(grpcAuthConn))
 	authHandler := httpwrap.NewAuthHandler(authService)
 
-	storeService := grpcwrap.NewStoreAdapter(grpcStoreConn)
+	storeService := grpcwrap.NewStoreAdapter(merchapi.NewMerchStoreServiceClient(grpcStoreConn))
 	storeHandler := httpwrap.NewStoreHandler(storeService)
 
 	api := router.Group("/api")

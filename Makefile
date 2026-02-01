@@ -1,4 +1,4 @@
-﻿COVERAGE_FILE ?= coverage.out
+COVERAGE_FILE ?= coverage.out
 DB_DSN ?= "postgres://admin:password@localhost:5433/merch_store_db?sslmode=disable"
 
 .PHONY: build-app-up
@@ -16,7 +16,7 @@ infra-up:
 ## test: run all tests
 .PHONY: test
 test:
-	@go test -coverpkg='url-shortening-service/internal/application/...,url-shortening-service/internal/infrastructure/...,url-shortening-service/internal/domain' --race -count=1 -coverprofile='$(COVERAGE_FILE)' ./...
+	@go test -coverpkg='./internal/...' --race -count=1 -coverprofile='$(COVERAGE_FILE)' ./...
 	@go tool cover -func='$(COVERAGE_FILE)' | grep ^total | tr -s '\t'
 
 .PHONY: migrate-up

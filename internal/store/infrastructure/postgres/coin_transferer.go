@@ -50,25 +50,9 @@ func (pct *CoinsTransferer) TransferCoins(ctx context.Context, fromUsername stri
 		}
 	}()
 
-	usersSelectSQL := `SELECT id, username, balance FROM users WHERE username = ANY($1) ORDER BY id FOR UPDATE`
-	rows, err := tx.Query(ctx, usersSelectSQL, []string{fromUsername, toUsername})
+	users, err := getTargetUsers(ctx, tx, fromUsername, toUsername)
 	if err != nil {
-		return fmt.Errorf("failed to select users for update: %w", err)
-	}
-
-	users := make([]userInfo, 0, 2)
-	for rows.Next() {
-		var user userInfo
-		err = rows.Scan(&user.Id, &user.Username, &user.Balance)
-		if err != nil {
-			return fmt.Errorf("failed to scan user row: %w", err)
-		}
-		users = append(users, user)
-	}
-	rows.Close()
-
-	if len(users) != 2 {
-		return &domain.UserNotFoundError{}
+		return err
 	}
 
 	var fromUser, toUser *userInfo
@@ -84,24 +68,9 @@ func (pct *CoinsTransferer) TransferCoins(ctx context.Context, fromUsername stri
 		return &domain.InsufficientBalanceError{}
 	}
 
-	updateBalanceSQL := `UPDATE users SET balance = balance - $1 WHERE id = $2 AND balance >= $1`
-	tag, err := tx.Exec(ctx, updateBalanceSQL, amount, fromUser.Id)
+	err = proceedTransaction(ctx, tx, amount, fromUser, toUser)
 	if err != nil {
-		return fmt.Errorf("failed to update balance for fromUser: %w", err)
-	} else if tag.RowsAffected() == 0 {
-		return &domain.InsufficientBalanceError{}
-	}
-
-	updateBalanceSQL = `UPDATE users SET balance = balance + $1 WHERE id = $2`
-	_, err = tx.Exec(ctx, updateBalanceSQL, amount, toUser.Id)
-	if err != nil {
-		return fmt.Errorf("failed to update balance for toUser: %w", err)
-	}
-
-	insertTransactionSQL := `INSERT INTO transactions (from_user_id, to_user_id, amount) VALUES ($1, $2, $3)`
-	_, err = tx.Exec(ctx, insertTransactionSQL, fromUser.Id, toUser.Id, amount)
-	if err != nil {
-		return fmt.Errorf("failed to insert transaction record: %w", err)
+		return err
 	}
 
 	err = tx.Commit(ctx)
@@ -110,4 +79,53 @@ func (pct *CoinsTransferer) TransferCoins(ctx context.Context, fromUsername stri
 	}
 
 	return nil
+}
+
+func proceedTransaction(ctx context.Context, executor database.Executor, amount uint32, fromUser, toUser *userInfo) error {
+	updateBalanceSQL := `UPDATE users SET balance = balance - $1 WHERE id = $2 AND balance >= $1`
+	tag, err := executor.Exec(ctx, updateBalanceSQL, amount, fromUser.Id)
+	if err != nil {
+		return fmt.Errorf("failed to update balance for fromUser: %w", err)
+	} else if tag.RowsAffected() == 0 {
+		return &domain.InsufficientBalanceError{}
+	}
+
+	updateBalanceSQL = `UPDATE users SET balance = balance + $1 WHERE id = $2`
+	_, err = executor.Exec(ctx, updateBalanceSQL, amount, toUser.Id)
+	if err != nil {
+		return fmt.Errorf("failed to update balance for toUser: %w", err)
+	}
+
+	insertTransactionSQL := `INSERT INTO transactions (from_user_id, to_user_id, amount) VALUES ($1, $2, $3)`
+	_, err = executor.Exec(ctx, insertTransactionSQL, fromUser.Id, toUser.Id, amount)
+	if err != nil {
+		return fmt.Errorf("failed to insert transaction record: %w", err)
+	}
+
+	return nil
+}
+
+func getTargetUsers(ctx context.Context, querier database.Querier, fromUsername, toUsername string) ([]userInfo, error) {
+	usersSelectSQL := `SELECT id, username, balance FROM users WHERE username = ANY($1) ORDER BY id FOR UPDATE`
+	rows, err := querier.Query(ctx, usersSelectSQL, []string{fromUsername, toUsername})
+	if err != nil {
+		return nil, fmt.Errorf("failed to select users for update: %w", err)
+	}
+
+	users := make([]userInfo, 0, 2)
+	for rows.Next() {
+		var user userInfo
+		err = rows.Scan(&user.Id, &user.Username, &user.Balance)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan user row: %w", err)
+		}
+		users = append(users, user)
+	}
+	rows.Close()
+
+	if len(users) != 2 {
+		return nil, &domain.UserNotFoundError{}
+	}
+
+	return users, nil
 }

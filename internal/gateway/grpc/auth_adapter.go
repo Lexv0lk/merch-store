@@ -4,16 +4,15 @@ import (
 	"context"
 
 	merchapi "github.com/Lexv0lk/merch-store/gen/merch/v1"
-	"google.golang.org/grpc"
 )
 
 type AuthAdapter struct {
 	client merchapi.AuthServiceClient
 }
 
-func NewAuthAdapter(conn *grpc.ClientConn) *AuthAdapter {
+func NewAuthAdapter(client merchapi.AuthServiceClient) *AuthAdapter {
 	return &AuthAdapter{
-		client: merchapi.NewAuthServiceClient(conn),
+		client: client,
 	}
 }
 

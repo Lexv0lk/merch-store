@@ -5,16 +5,15 @@ import (
 
 	merchapi "github.com/Lexv0lk/merch-store/gen/merch/v1"
 	"github.com/Lexv0lk/merch-store/internal/gateway/domain"
-	"google.golang.org/grpc"
 )
 
 type StoreAdapter struct {
 	client merchapi.MerchStoreServiceClient
 }
 
-func NewStoreAdapter(conn *grpc.ClientConn) *StoreAdapter {
+func NewStoreAdapter(client merchapi.MerchStoreServiceClient) *StoreAdapter {
 	return &StoreAdapter{
-		client: merchapi.NewMerchStoreServiceClient(conn),
+		client: client,
 	}
 }
 

@@ -30,15 +30,9 @@ func NewPurchaseHandler(queryTxBeginner database.QueryTxBeginner, logger logging
 }
 
 func (ph *PurchaseHandler) HandlePurchase(ctx context.Context, userId int, goodName string) error {
-	findGoodSQL := `SELECT id, name, price FROM goods WHERE name = $1`
-	var good goodInfo
-	err := ph.queryTxBeginner.QueryRow(ctx, findGoodSQL, goodName).Scan(&good.id, &good.name, &good.price)
+	good, err := tryFindGoodInfo(ctx, ph.queryTxBeginner, goodName)
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return &domain.GoodNotFoundError{Msg: fmt.Sprintf("good %s not found", goodName)}
-		}
-
-		return fmt.Errorf("failed to find good: %w", err)
+		return err
 	}
 
 	tx, err := ph.queryTxBeginner.BeginTx(ctx, pgx.TxOptions{
@@ -55,31 +49,18 @@ func (ph *PurchaseHandler) HandlePurchase(ctx context.Context, userId int, goodN
 		}
 	}()
 
-	lockUserSQL := `SELECT balance FROM users WHERE id = $1 FOR UPDATE`
-	var balance int
-	err = tx.QueryRow(ctx, lockUserSQL, userId).Scan(&balance)
+	balance, err := lockUserBalance(ctx, tx, userId)
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return &domain.UserNotFoundError{Msg: fmt.Sprintf("user with id %d not found", userId)}
-		}
-
-		return fmt.Errorf("failed to lock user row: %w", err)
+		return err
 	}
 
 	if balance < good.price {
 		return &domain.InsufficientBalanceError{Msg: "insufficient balance"}
 	}
 
-	updateBalanceSQL := `UPDATE users SET balance = balance - $1 WHERE id = $2`
-	_, err = tx.Exec(ctx, updateBalanceSQL, good.price, userId)
+	err = processPurchase(ctx, tx, userId, good)
 	if err != nil {
-		return fmt.Errorf("failed to update user balance: %w", err)
-	}
-
-	insertPurchaseSQL := `INSERT INTO purchases (user_id, good_id) VALUES ($1, $2)`
-	_, err = tx.Exec(ctx, insertPurchaseSQL, userId, good.id)
-	if err != nil {
-		return fmt.Errorf("failed to insert purchase record: %w", err)
+		return err
 	}
 
 	err = tx.Commit(ctx)
@@ -88,4 +69,54 @@ func (ph *PurchaseHandler) HandlePurchase(ctx context.Context, userId int, goodN
 	}
 
 	return nil
+}
+
+func processPurchase(ctx context.Context, executor database.Executor, userId int, good goodInfo) error {
+	updateBalanceSQL := `UPDATE users SET balance = balance - $1 WHERE id = $2`
+	_, err := executor.Exec(ctx, updateBalanceSQL, good.price, userId)
+	if err != nil {
+		return fmt.Errorf("failed to update user balance: %w", err)
+	}
+
+	insertPurchaseSQL := `INSERT INTO purchases (user_id, good_id) VALUES ($1, $2)`
+	_, err = executor.Exec(ctx, insertPurchaseSQL, userId, good.id)
+	if err != nil {
+		return fmt.Errorf("failed to insert purchase record: %w", err)
+	}
+
+	return nil
+}
+
+func lockUserBalance(ctx context.Context, querier database.Querier, userId int) (int, error) {
+	lockUserSQL := `SELECT balance FROM users WHERE id = $1 FOR UPDATE`
+
+	var balance int
+	err := querier.QueryRow(ctx, lockUserSQL, userId).Scan(&balance)
+
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return 0, &domain.UserNotFoundError{Msg: fmt.Sprintf("user with id %d not found", userId)}
+		}
+
+		return 0, fmt.Errorf("failed to lock user row: %w", err)
+	}
+
+	return balance, nil
+}
+
+func tryFindGoodInfo(ctx context.Context, querier database.Querier, name string) (goodInfo, error) {
+	findGoodSQL := `SELECT id, name, price FROM goods WHERE name = $1`
+
+	var good goodInfo
+	err := querier.QueryRow(ctx, findGoodSQL, name).Scan(&good.id, &good.name, &good.price)
+
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return goodInfo{}, &domain.GoodNotFoundError{Msg: fmt.Sprintf("good %s not found", name)}
+		}
+
+		return goodInfo{}, fmt.Errorf("failed to find good: %w", err)
+	}
+
+	return good, nil
 }
