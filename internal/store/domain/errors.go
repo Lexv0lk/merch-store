@@ -67,3 +67,20 @@ func (e *GoodNotFoundError) Is(target error) bool {
 }
 
 //endregion
+
+//region BalanceNotFoundError
+
+type BalanceNotFoundError struct {
+	Msg string
+}
+
+func (e *BalanceNotFoundError) Error() string {
+	return e.Msg
+}
+
+func (e *BalanceNotFoundError) Is(target error) bool {
+	_, ok := target.(*BalanceNotFoundError)
+	return ok
+}
+
+//endregion

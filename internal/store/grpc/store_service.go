@@ -40,7 +40,7 @@ func NewStoreServerGRPC(
 	}
 }
 
-func (s *StoreServerGRPC) GetUserInfo(ctx context.Context, req *merchapi.GetUserInfoRequest) (*merchapi.GetUserInfoResponse, error) {
+func (s *StoreServerGRPC) GetUserInfo(ctx context.Context, _ *merchapi.GetUserInfoRequest) (*merchapi.GetUserInfoResponse, error) {
 	userID := ctx.Value(userIDContextKey).(int)
 
 	userInfo, err := s.userInfoCase.GetUserInfo(ctx, userID)

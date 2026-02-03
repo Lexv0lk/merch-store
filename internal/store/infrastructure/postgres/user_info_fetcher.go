@@ -31,12 +31,23 @@ func NewUserInfoFetcher(querier database.Querier, logger logging.Logger) *UserIn
 }
 
 func (uif *UserInfoFetcher) FetchMainUserInfo(ctx context.Context, userId int) (domain.MainUserInfo, error) {
-	sql := `SELECT username, balance FROM users WHERE id = $1`
+	sql := `SELECT username FROM users WHERE id = $1`
 	var userInfo domain.MainUserInfo
-	err := uif.querier.QueryRow(ctx, sql, userId).Scan(&userInfo.Username, &userInfo.Balance)
+	err := uif.querier.QueryRow(ctx, sql, userId).Scan(&userInfo.Username)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return domain.MainUserInfo{}, &domain.UserNotFoundError{Msg: fmt.Sprintf("user with id %d not found", userId)}
+		}
+
+		return domain.MainUserInfo{}, err
+	}
+
+	sql = `SELECT balance FROM balances WHERE user_id = $1`
+	err = uif.querier.QueryRow(ctx, sql, userId).Scan(&userInfo.Balance)
+	if err != nil {
+		//TODO: add balance row if not found for user
+		if errors.Is(err, pgx.ErrNoRows) {
+			return domain.MainUserInfo{}, &domain.BalanceNotFoundError{Msg: fmt.Sprintf("balance for user with id %d not found", userId)}
 		}
 
 		return domain.MainUserInfo{}, err

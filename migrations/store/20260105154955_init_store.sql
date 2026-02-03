@@ -1,9 +1,8 @@
 -- +goose Up
 -- +goose StatementBegin
-CREATE TABLE users (
+CREATE TABLE balances (
     id SERIAL PRIMARY KEY,
-    username VARCHAR(50) NOT NULL UNIQUE,
-    password_hash TEXT NOT NULL,
+    user_id INTEGER REFERENCES users(id) UNIQUE,
     balance INTEGER NOT NULL DEFAULT 0
 );
 
@@ -32,5 +31,5 @@ CREATE TABLE purchases (
 DROP TABLE IF EXISTS purchases;
 DROP TABLE IF EXISTS transactions;
 DROP TABLE IF EXISTS goods;
-DROP TABLE IF EXISTS users;
+DROP TABLE IF EXISTS balances;
 -- +goose StatementEnd

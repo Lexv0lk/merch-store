@@ -10,8 +10,10 @@ import (
 	"github.com/Lexv0lk/merch-store/internal/auth/domain"
 	grpcwrap "github.com/Lexv0lk/merch-store/internal/auth/grpc"
 	"github.com/Lexv0lk/merch-store/internal/auth/infrastructure/postgres"
+	"github.com/Lexv0lk/merch-store/internal/pkg/database"
 	"github.com/Lexv0lk/merch-store/internal/pkg/jwt"
 	"github.com/Lexv0lk/merch-store/internal/pkg/logging"
+	authmigrationsfs "github.com/Lexv0lk/merch-store/migrations/auth"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"google.golang.org/grpc"
 )
@@ -37,8 +39,14 @@ func NewAuthApp(cfg AuthConfig, logger logging.Logger) *AuthApp {
 func (a *AuthApp) Run(ctx context.Context) error {
 	logger := a.logger
 	databaseSettings := a.cfg.DbSettings
+	dbURL := databaseSettings.GetUrl()
 
-	dbpool, err := pgxpool.New(ctx, databaseSettings.GetUrl())
+	err := database.MigrateDatabase(dbURL, &authmigrationsfs.AuthMigrations, ".", "pgx", "postgres")
+	if err != nil {
+		return fmt.Errorf("database migration failed: %w", err)
+	}
+
+	dbpool, err := pgxpool.New(ctx, dbURL)
 	if err != nil {
 		return fmt.Errorf("failed to connect to database: %w", err)
 	}
