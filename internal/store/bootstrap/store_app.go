@@ -56,8 +56,8 @@ func (a *StoreApp) Run(ctx context.Context) error {
 	coinsTransferer := postgres.NewCoinsTransferer(dbpool, logger)
 	sendCoinsCase := application.NewSendCoinsCase(coinsTransferer)
 
-	userInfoFetcher := postgres.NewUserInfoFetcher(dbpool, logger)
-	userInfoCase := application.NewUserInfoCase(userInfoFetcher, logger)
+	userInfoRepository := postgres.NewUserInfoRepository(dbpool, logger)
+	userInfoCase := application.NewUserInfoCase(userInfoRepository, logger)
 
 	server, lis, err := createGRPCServer(purchaseCase, sendCoinsCase, userInfoCase, logger, jwt.NewJWTTokenParser(),
 		a.cfg.GrpcPort, a.cfg.JwtSecret)

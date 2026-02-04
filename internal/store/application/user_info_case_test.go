@@ -1,4 +1,3 @@
-//go:generate mockgen
 package application
 
 import (
@@ -19,7 +18,7 @@ func TestUserInfoCase_GetUserInfo(t *testing.T) {
 		name   string
 		userId int
 
-		prepareFn func(t *testing.T, ctrl *gomock.Controller) (domain.UserInfoFetcher, logging.Logger)
+		prepareFn func(t *testing.T, ctrl *gomock.Controller) (domain.UserInfoRepository, logging.Logger)
 
 		expectedUserInfo domain.TotalUserInfo
 		expectedErr      error
@@ -29,19 +28,17 @@ func TestUserInfoCase_GetUserInfo(t *testing.T) {
 		{
 			name:   "successful fetch all info",
 			userId: 1,
-			prepareFn: func(t *testing.T, ctrl *gomock.Controller) (domain.UserInfoFetcher, logging.Logger) {
-				infoFetcher := storemocks.NewMockUserInfoFetcher(ctrl)
+			prepareFn: func(t *testing.T, ctrl *gomock.Controller) (domain.UserInfoRepository, logging.Logger) {
+				infoRepository := storemocks.NewMockUserInfoRepository(ctrl)
 				logger := loggingmocks.NewMockLogger(ctrl)
 
-				infoFetcher.EXPECT().FetchMainUserInfo(gomock.Any(), 1).Return(domain.MainUserInfo{
-					Username: "testuser",
-					Balance:  1000,
-				}, nil)
-				infoFetcher.EXPECT().FetchUserPurchases(gomock.Any(), 1).Return(map[domain.Good]uint32{
+				infoRepository.EXPECT().FetchUsername(gomock.Any(), 1).Return("testuser", nil)
+				infoRepository.EXPECT().FetchUserBalance(gomock.Any(), 1).Return(uint32(1000), nil)
+				infoRepository.EXPECT().FetchUserPurchases(gomock.Any(), 1).Return(map[domain.Good]uint32{
 					{Name: "t-shirt"}: 2,
 					{Name: "cup"}:     1,
 				}, nil)
-				infoFetcher.EXPECT().FetchUserCoinTransfers(gomock.Any(), 1).Return(domain.CoinTransferHistory{
+				infoRepository.EXPECT().FetchUserCoinTransfers(gomock.Any(), 1).Return(domain.CoinTransferHistory{
 					IncomingTransfers: []domain.DirectTransfer{
 						{TargetName: "sender1", Amount: 50},
 					},
@@ -50,7 +47,7 @@ func TestUserInfoCase_GetUserInfo(t *testing.T) {
 					},
 				}, nil)
 
-				return infoFetcher, logger
+				return infoRepository, logger
 			},
 			expectedUserInfo: domain.TotalUserInfo{
 				Username: "testuser",
@@ -73,15 +70,15 @@ func TestUserInfoCase_GetUserInfo(t *testing.T) {
 		{
 			name:   "user not found",
 			userId: 999,
-			prepareFn: func(t *testing.T, ctrl *gomock.Controller) (domain.UserInfoFetcher, logging.Logger) {
-				infoFetcher := storemocks.NewMockUserInfoFetcher(ctrl)
+			prepareFn: func(t *testing.T, ctrl *gomock.Controller) (domain.UserInfoRepository, logging.Logger) {
+				infoRepository := storemocks.NewMockUserInfoRepository(ctrl)
 				logger := loggingmocks.NewMockLogger(ctrl)
 
-				infoFetcher.EXPECT().FetchMainUserInfo(gomock.Any(), 999).Return(domain.MainUserInfo{}, &domain.UserNotFoundError{Msg: "user not found"})
-				infoFetcher.EXPECT().FetchUserPurchases(gomock.Any(), 999).Return(nil, nil).AnyTimes()
-				infoFetcher.EXPECT().FetchUserCoinTransfers(gomock.Any(), 999).Return(domain.CoinTransferHistory{}, nil).AnyTimes()
+				infoRepository.EXPECT().FetchUsername(gomock.Any(), 999).Return("", &domain.UserNotFoundError{Msg: "user not found"})
+				infoRepository.EXPECT().FetchUserPurchases(gomock.Any(), 999).Return(nil, nil).AnyTimes()
+				infoRepository.EXPECT().FetchUserCoinTransfers(gomock.Any(), 999).Return(domain.CoinTransferHistory{}, nil).AnyTimes()
 
-				return infoFetcher, logger
+				return infoRepository, logger
 			},
 			expectedUserInfo: domain.TotalUserInfo{},
 			expectedErr:      &domain.UserNotFoundError{},
@@ -89,18 +86,16 @@ func TestUserInfoCase_GetUserInfo(t *testing.T) {
 		{
 			name:   "fetch purchases error",
 			userId: 1,
-			prepareFn: func(t *testing.T, ctrl *gomock.Controller) (domain.UserInfoFetcher, logging.Logger) {
-				infoFetcher := storemocks.NewMockUserInfoFetcher(ctrl)
+			prepareFn: func(t *testing.T, ctrl *gomock.Controller) (domain.UserInfoRepository, logging.Logger) {
+				infoRepository := storemocks.NewMockUserInfoRepository(ctrl)
 				logger := loggingmocks.NewMockLogger(ctrl)
 
-				infoFetcher.EXPECT().FetchMainUserInfo(gomock.Any(), 1).Return(domain.MainUserInfo{
-					Username: "testuser",
-					Balance:  1000,
-				}, nil).AnyTimes()
-				infoFetcher.EXPECT().FetchUserPurchases(gomock.Any(), 1).Return(nil, assert.AnError)
-				infoFetcher.EXPECT().FetchUserCoinTransfers(gomock.Any(), 1).Return(domain.CoinTransferHistory{}, nil).AnyTimes()
+				infoRepository.EXPECT().FetchUsername(gomock.Any(), 1).Return("testuser", nil).AnyTimes()
+				infoRepository.EXPECT().FetchUserBalance(gomock.Any(), 1).Return(uint32(1000), nil).AnyTimes()
+				infoRepository.EXPECT().FetchUserPurchases(gomock.Any(), 1).Return(nil, assert.AnError)
+				infoRepository.EXPECT().FetchUserCoinTransfers(gomock.Any(), 1).Return(domain.CoinTransferHistory{}, nil).AnyTimes()
 
-				return infoFetcher, logger
+				return infoRepository, logger
 			},
 			expectedUserInfo: domain.TotalUserInfo{},
 			expectedErr:      assert.AnError,
@@ -108,18 +103,16 @@ func TestUserInfoCase_GetUserInfo(t *testing.T) {
 		{
 			name:   "fetch coin transfers error",
 			userId: 1,
-			prepareFn: func(t *testing.T, ctrl *gomock.Controller) (domain.UserInfoFetcher, logging.Logger) {
-				infoFetcher := storemocks.NewMockUserInfoFetcher(ctrl)
+			prepareFn: func(t *testing.T, ctrl *gomock.Controller) (domain.UserInfoRepository, logging.Logger) {
+				infoRepository := storemocks.NewMockUserInfoRepository(ctrl)
 				logger := loggingmocks.NewMockLogger(ctrl)
 
-				infoFetcher.EXPECT().FetchMainUserInfo(gomock.Any(), 1).Return(domain.MainUserInfo{
-					Username: "testuser",
-					Balance:  1000,
-				}, nil).AnyTimes()
-				infoFetcher.EXPECT().FetchUserPurchases(gomock.Any(), 1).Return(map[domain.Good]uint32{}, nil).AnyTimes()
-				infoFetcher.EXPECT().FetchUserCoinTransfers(gomock.Any(), 1).Return(domain.CoinTransferHistory{}, assert.AnError)
+				infoRepository.EXPECT().FetchUsername(gomock.Any(), 1).Return("testuser", nil).AnyTimes()
+				infoRepository.EXPECT().FetchUserBalance(gomock.Any(), 1).Return(uint32(1000), nil).AnyTimes()
+				infoRepository.EXPECT().FetchUserPurchases(gomock.Any(), 1).Return(map[domain.Good]uint32{}, nil).AnyTimes()
+				infoRepository.EXPECT().FetchUserCoinTransfers(gomock.Any(), 1).Return(domain.CoinTransferHistory{}, assert.AnError)
 
-				return infoFetcher, logger
+				return infoRepository, logger
 			},
 			expectedUserInfo: domain.TotalUserInfo{},
 			expectedErr:      assert.AnError,
@@ -127,25 +120,52 @@ func TestUserInfoCase_GetUserInfo(t *testing.T) {
 		{
 			name:   "empty purchases and transfers",
 			userId: 2,
-			prepareFn: func(t *testing.T, ctrl *gomock.Controller) (domain.UserInfoFetcher, logging.Logger) {
-				infoFetcher := storemocks.NewMockUserInfoFetcher(ctrl)
+			prepareFn: func(t *testing.T, ctrl *gomock.Controller) (domain.UserInfoRepository, logging.Logger) {
+				infoRepository := storemocks.NewMockUserInfoRepository(ctrl)
 				logger := loggingmocks.NewMockLogger(ctrl)
 
-				infoFetcher.EXPECT().FetchMainUserInfo(gomock.Any(), 2).Return(domain.MainUserInfo{
-					Username: "newuser",
-					Balance:  500,
-				}, nil)
-				infoFetcher.EXPECT().FetchUserPurchases(gomock.Any(), 2).Return(map[domain.Good]uint32{}, nil)
-				infoFetcher.EXPECT().FetchUserCoinTransfers(gomock.Any(), 2).Return(domain.CoinTransferHistory{
+				infoRepository.EXPECT().FetchUsername(gomock.Any(), 2).Return("newuser", nil)
+				infoRepository.EXPECT().FetchUserBalance(gomock.Any(), 2).Return(uint32(500), nil)
+				infoRepository.EXPECT().FetchUserPurchases(gomock.Any(), 2).Return(map[domain.Good]uint32{}, nil)
+				infoRepository.EXPECT().FetchUserCoinTransfers(gomock.Any(), 2).Return(domain.CoinTransferHistory{
 					IncomingTransfers:  []domain.DirectTransfer{},
 					OutcomingTransfers: []domain.DirectTransfer{},
 				}, nil)
 
-				return infoFetcher, logger
+				return infoRepository, logger
 			},
 			expectedUserInfo: domain.TotalUserInfo{
 				Username: "newuser",
 				Balance:  500,
+				Goods:    map[domain.Good]uint32{},
+				CoinTransferHistory: domain.CoinTransferHistory{
+					IncomingTransfers:  []domain.DirectTransfer{},
+					OutcomingTransfers: []domain.DirectTransfer{},
+				},
+			},
+			expectedErr: nil,
+		},
+		{
+			name:   "balance not found - creates new balance",
+			userId: 3,
+			prepareFn: func(t *testing.T, ctrl *gomock.Controller) (domain.UserInfoRepository, logging.Logger) {
+				infoRepository := storemocks.NewMockUserInfoRepository(ctrl)
+				logger := loggingmocks.NewMockLogger(ctrl)
+
+				infoRepository.EXPECT().FetchUsername(gomock.Any(), 3).Return("newuser", nil)
+				infoRepository.EXPECT().FetchUserBalance(gomock.Any(), 3).Return(uint32(0), &domain.BalanceNotFoundError{Msg: "balance not found"})
+				infoRepository.EXPECT().CreateBalance(gomock.Any(), 3, uint32(1000)).Return(nil)
+				infoRepository.EXPECT().FetchUserPurchases(gomock.Any(), 3).Return(map[domain.Good]uint32{}, nil)
+				infoRepository.EXPECT().FetchUserCoinTransfers(gomock.Any(), 3).Return(domain.CoinTransferHistory{
+					IncomingTransfers:  []domain.DirectTransfer{},
+					OutcomingTransfers: []domain.DirectTransfer{},
+				}, nil)
+
+				return infoRepository, logger
+			},
+			expectedUserInfo: domain.TotalUserInfo{
+				Username: "newuser",
+				Balance:  1000,
 				Goods:    map[domain.Good]uint32{},
 				CoinTransferHistory: domain.CoinTransferHistory{
 					IncomingTransfers:  []domain.DirectTransfer{},

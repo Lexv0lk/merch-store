@@ -16,7 +16,6 @@ func TestUsersRepository_CreateUser(t *testing.T) {
 	type testCase struct {
 		name                     string
 		username, hashedPassword string
-		startBalance             int
 
 		prepareFn func(t *testing.T, mock pgxmock.PgxConnIface)
 
@@ -29,20 +28,18 @@ func TestUsersRepository_CreateUser(t *testing.T) {
 			name:           "successful user creation",
 			username:       "testuser",
 			hashedPassword: "hashed_password",
-			startBalance:   1000,
 			prepareFn: func(t *testing.T, mock pgxmock.PgxConnIface) {
 				t.Helper()
-				rows := pgxmock.NewRows([]string{"id", "username", "password_hash", "balance"}).
-					AddRow(1, "testuser", "hashed_password", 1000)
+				rows := pgxmock.NewRows([]string{"id", "username", "password_hash"}).
+					AddRow(1, "testuser", "hashed_password")
 				mock.ExpectQuery("INSERT").
-					WithArgs("testuser", "hashed_password", 1000).
+					WithArgs("testuser", "hashed_password").
 					WillReturnRows(rows)
 			},
 			expectedUser: domain.UserInfo{
 				ID:           1,
 				Username:     "testuser",
 				PasswordHash: "hashed_password",
-				Balance:      1000,
 			},
 			expectedErr: nil,
 		},
@@ -50,11 +47,10 @@ func TestUsersRepository_CreateUser(t *testing.T) {
 			name:           "database error on insert",
 			username:       "testuser",
 			hashedPassword: "hashed_password",
-			startBalance:   1000,
 			prepareFn: func(t *testing.T, mock pgxmock.PgxConnIface) {
 				t.Helper()
 				mock.ExpectQuery("INSERT").
-					WithArgs("testuser", "hashed_password", 1000).
+					WithArgs("testuser", "hashed_password").
 					WillReturnError(assert.AnError)
 			},
 			expectedUser: domain.UserInfo{},
@@ -64,11 +60,10 @@ func TestUsersRepository_CreateUser(t *testing.T) {
 			name:           "duplicate username error",
 			username:       "existinguser",
 			hashedPassword: "hashed_password",
-			startBalance:   1000,
 			prepareFn: func(t *testing.T, mock pgxmock.PgxConnIface) {
 				t.Helper()
 				mock.ExpectQuery("INSERT").
-					WithArgs("existinguser", "hashed_password", 1000).
+					WithArgs("existinguser", "hashed_password").
 					WillReturnError(assert.AnError)
 			},
 			expectedUser: domain.UserInfo{},
@@ -87,7 +82,7 @@ func TestUsersRepository_CreateUser(t *testing.T) {
 			tt.prepareFn(t, mock)
 
 			repo := NewUsersRepository(mock)
-			user, err := repo.CreateUser(t.Context(), tt.username, tt.hashedPassword, tt.startBalance)
+			user, err := repo.CreateUser(t.Context(), tt.username, tt.hashedPassword)
 
 			if tt.expectedErr != nil {
 				assert.ErrorIs(t, err, tt.expectedErr)
@@ -119,8 +114,8 @@ func TestUsersRepository_TryGetUserInfo(t *testing.T) {
 			username: "existinguser",
 			prepareFn: func(t *testing.T, mock pgxmock.PgxConnIface) {
 				t.Helper()
-				rows := pgxmock.NewRows([]string{"id", "username", "password_hash", "balance"}).
-					AddRow(1, "existinguser", "hashed_password", 500)
+				rows := pgxmock.NewRows([]string{"id", "username", "password_hash"}).
+					AddRow(1, "existinguser", "hashed_password")
 				mock.ExpectQuery("SELECT").
 					WithArgs("existinguser").
 					WillReturnRows(rows)
@@ -129,7 +124,6 @@ func TestUsersRepository_TryGetUserInfo(t *testing.T) {
 				ID:           1,
 				Username:     "existinguser",
 				PasswordHash: "hashed_password",
-				Balance:      500,
 			},
 			expectedFound: true,
 			expectedErr:   nil,

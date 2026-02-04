@@ -36,18 +36,18 @@ func (m *MockUsersRepository) EXPECT() *MockUsersRepositoryMockRecorder {
 }
 
 // CreateUser mocks base method.
-func (m *MockUsersRepository) CreateUser(ctx context.Context, username, hashedPassword string, startBalance int) (domain.UserInfo, error) {
+func (m *MockUsersRepository) CreateUser(ctx context.Context, username, hashedPassword string) (domain.UserInfo, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateUser", ctx, username, hashedPassword, startBalance)
+	ret := m.ctrl.Call(m, "CreateUser", ctx, username, hashedPassword)
 	ret0, _ := ret[0].(domain.UserInfo)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // CreateUser indicates an expected call of CreateUser.
-func (mr *MockUsersRepositoryMockRecorder) CreateUser(ctx, username, hashedPassword, startBalance interface{}) *gomock.Call {
+func (mr *MockUsersRepositoryMockRecorder) CreateUser(ctx, username, hashedPassword interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateUser", reflect.TypeOf((*MockUsersRepository)(nil).CreateUser), ctx, username, hashedPassword, startBalance)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateUser", reflect.TypeOf((*MockUsersRepository)(nil).CreateUser), ctx, username, hashedPassword)
 }
 
 // TryGetUserInfo mocks base method.

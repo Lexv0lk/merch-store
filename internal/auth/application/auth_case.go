@@ -10,7 +10,6 @@ import (
 
 const (
 	tokenTimeLimit = time.Hour
-	startBalance   = 1000
 )
 
 type Authenticator struct {
@@ -46,7 +45,7 @@ func (a *Authenticator) Authenticate(ctx context.Context, username, password str
 			return "", err
 		}
 
-		userInfo, err = a.usersRepository.CreateUser(ctx, username, hashedPassword, startBalance)
+		userInfo, err = a.usersRepository.CreateUser(ctx, username, hashedPassword)
 		if err != nil {
 			return "", err
 		}

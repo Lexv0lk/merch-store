@@ -12,46 +12,60 @@ import (
 	gomock "github.com/golang/mock/gomock"
 )
 
-// MockUserInfoFetcher is a mock of UserInfoFetcher interface.
-type MockUserInfoFetcher struct {
+// MockUserInfoRepository is a mock of UserInfoRepository interface.
+type MockUserInfoRepository struct {
 	ctrl     *gomock.Controller
-	recorder *MockUserInfoFetcherMockRecorder
+	recorder *MockUserInfoRepositoryMockRecorder
 }
 
-// MockUserInfoFetcherMockRecorder is the mock recorder for MockUserInfoFetcher.
-type MockUserInfoFetcherMockRecorder struct {
-	mock *MockUserInfoFetcher
+// MockUserInfoRepositoryMockRecorder is the mock recorder for MockUserInfoRepository.
+type MockUserInfoRepositoryMockRecorder struct {
+	mock *MockUserInfoRepository
 }
 
-// NewMockUserInfoFetcher creates a new mock instance.
-func NewMockUserInfoFetcher(ctrl *gomock.Controller) *MockUserInfoFetcher {
-	mock := &MockUserInfoFetcher{ctrl: ctrl}
-	mock.recorder = &MockUserInfoFetcherMockRecorder{mock}
+// NewMockUserInfoRepository creates a new mock instance.
+func NewMockUserInfoRepository(ctrl *gomock.Controller) *MockUserInfoRepository {
+	mock := &MockUserInfoRepository{ctrl: ctrl}
+	mock.recorder = &MockUserInfoRepositoryMockRecorder{mock}
 	return mock
 }
 
 // EXPECT returns an object that allows the caller to indicate expected use.
-func (m *MockUserInfoFetcher) EXPECT() *MockUserInfoFetcherMockRecorder {
+func (m *MockUserInfoRepository) EXPECT() *MockUserInfoRepositoryMockRecorder {
 	return m.recorder
 }
 
-// FetchMainUserInfo mocks base method.
-func (m *MockUserInfoFetcher) FetchMainUserInfo(ctx context.Context, userId int) (domain.MainUserInfo, error) {
+// CreateBalance mocks base method.
+func (m *MockUserInfoRepository) CreateBalance(ctx context.Context, userId int, startValue uint32) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "FetchMainUserInfo", ctx, userId)
-	ret0, _ := ret[0].(domain.MainUserInfo)
+	ret := m.ctrl.Call(m, "CreateBalance", ctx, userId, startValue)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// CreateBalance indicates an expected call of CreateBalance.
+func (mr *MockUserInfoRepositoryMockRecorder) CreateBalance(ctx, userId, startValue interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateBalance", reflect.TypeOf((*MockUserInfoRepository)(nil).CreateBalance), ctx, userId, startValue)
+}
+
+// FetchUserBalance mocks base method.
+func (m *MockUserInfoRepository) FetchUserBalance(ctx context.Context, userId int) (uint32, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "FetchUserBalance", ctx, userId)
+	ret0, _ := ret[0].(uint32)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// FetchMainUserInfo indicates an expected call of FetchMainUserInfo.
-func (mr *MockUserInfoFetcherMockRecorder) FetchMainUserInfo(ctx, userId interface{}) *gomock.Call {
+// FetchUserBalance indicates an expected call of FetchUserBalance.
+func (mr *MockUserInfoRepositoryMockRecorder) FetchUserBalance(ctx, userId interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FetchMainUserInfo", reflect.TypeOf((*MockUserInfoFetcher)(nil).FetchMainUserInfo), ctx, userId)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FetchUserBalance", reflect.TypeOf((*MockUserInfoRepository)(nil).FetchUserBalance), ctx, userId)
 }
 
 // FetchUserCoinTransfers mocks base method.
-func (m *MockUserInfoFetcher) FetchUserCoinTransfers(ctx context.Context, userId int) (domain.CoinTransferHistory, error) {
+func (m *MockUserInfoRepository) FetchUserCoinTransfers(ctx context.Context, userId int) (domain.CoinTransferHistory, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "FetchUserCoinTransfers", ctx, userId)
 	ret0, _ := ret[0].(domain.CoinTransferHistory)
@@ -60,13 +74,13 @@ func (m *MockUserInfoFetcher) FetchUserCoinTransfers(ctx context.Context, userId
 }
 
 // FetchUserCoinTransfers indicates an expected call of FetchUserCoinTransfers.
-func (mr *MockUserInfoFetcherMockRecorder) FetchUserCoinTransfers(ctx, userId interface{}) *gomock.Call {
+func (mr *MockUserInfoRepositoryMockRecorder) FetchUserCoinTransfers(ctx, userId interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FetchUserCoinTransfers", reflect.TypeOf((*MockUserInfoFetcher)(nil).FetchUserCoinTransfers), ctx, userId)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FetchUserCoinTransfers", reflect.TypeOf((*MockUserInfoRepository)(nil).FetchUserCoinTransfers), ctx, userId)
 }
 
 // FetchUserPurchases mocks base method.
-func (m *MockUserInfoFetcher) FetchUserPurchases(ctx context.Context, userId int) (map[domain.Good]uint32, error) {
+func (m *MockUserInfoRepository) FetchUserPurchases(ctx context.Context, userId int) (map[domain.Good]uint32, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "FetchUserPurchases", ctx, userId)
 	ret0, _ := ret[0].(map[domain.Good]uint32)
@@ -75,7 +89,22 @@ func (m *MockUserInfoFetcher) FetchUserPurchases(ctx context.Context, userId int
 }
 
 // FetchUserPurchases indicates an expected call of FetchUserPurchases.
-func (mr *MockUserInfoFetcherMockRecorder) FetchUserPurchases(ctx, userId interface{}) *gomock.Call {
+func (mr *MockUserInfoRepositoryMockRecorder) FetchUserPurchases(ctx, userId interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FetchUserPurchases", reflect.TypeOf((*MockUserInfoFetcher)(nil).FetchUserPurchases), ctx, userId)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FetchUserPurchases", reflect.TypeOf((*MockUserInfoRepository)(nil).FetchUserPurchases), ctx, userId)
+}
+
+// FetchUsername mocks base method.
+func (m *MockUserInfoRepository) FetchUsername(ctx context.Context, userId int) (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "FetchUsername", ctx, userId)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// FetchUsername indicates an expected call of FetchUsername.
+func (mr *MockUserInfoRepositoryMockRecorder) FetchUsername(ctx, userId interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FetchUsername", reflect.TypeOf((*MockUserInfoRepository)(nil).FetchUsername), ctx, userId)
 }

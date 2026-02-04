@@ -18,45 +18,56 @@ type transaction struct {
 	amount         int
 }
 
-type UserInfoFetcher struct {
-	querier database.Querier
-	logger  logging.Logger
+type UserInfoRepository struct {
+	queryExecuter database.QueryExecuter
+	logger        logging.Logger
 }
 
-func NewUserInfoFetcher(querier database.Querier, logger logging.Logger) *UserInfoFetcher {
-	return &UserInfoFetcher{
-		querier: querier,
-		logger:  logger,
+func NewUserInfoRepository(queryExecuter database.QueryExecuter, logger logging.Logger) *UserInfoRepository {
+	return &UserInfoRepository{
+		queryExecuter: queryExecuter,
+		logger:        logger,
 	}
 }
 
-func (uif *UserInfoFetcher) FetchMainUserInfo(ctx context.Context, userId int) (domain.MainUserInfo, error) {
+func (uif *UserInfoRepository) FetchUsername(ctx context.Context, userId int) (string, error) {
 	sql := `SELECT username FROM users WHERE id = $1`
-	var userInfo domain.MainUserInfo
-	err := uif.querier.QueryRow(ctx, sql, userId).Scan(&userInfo.Username)
+	var username string
+	err := uif.queryExecuter.QueryRow(ctx, sql, userId).Scan(&username)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return domain.MainUserInfo{}, &domain.UserNotFoundError{Msg: fmt.Sprintf("user with id %d not found", userId)}
+			return "", &domain.UserNotFoundError{Msg: fmt.Sprintf("user with id %d not found", userId)}
 		}
 
-		return domain.MainUserInfo{}, err
+		return "", err
 	}
 
-	sql = `SELECT balance FROM balances WHERE user_id = $1`
-	err = uif.querier.QueryRow(ctx, sql, userId).Scan(&userInfo.Balance)
-	if err != nil {
-		//TODO: add balance row if not found for user
-		if errors.Is(err, pgx.ErrNoRows) {
-			return domain.MainUserInfo{}, &domain.BalanceNotFoundError{Msg: fmt.Sprintf("balance for user with id %d not found", userId)}
-		}
-
-		return domain.MainUserInfo{}, err
-	}
-
-	return userInfo, nil
+	return username, nil
 }
 
-func (uif *UserInfoFetcher) FetchUserPurchases(ctx context.Context, userId int) (map[domain.Good]uint32, error) {
+func (uif *UserInfoRepository) FetchUserBalance(ctx context.Context, userId int) (uint32, error) {
+	sql := `SELECT balance FROM balances WHERE user_id = $1`
+	var balance uint32
+
+	err := uif.queryExecuter.QueryRow(ctx, sql, userId).Scan(&balance)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return 0, &domain.BalanceNotFoundError{Msg: fmt.Sprintf("balance for user with id %d not found", userId)}
+		}
+
+		return 0, err
+	}
+
+	return balance, nil
+}
+
+func (uif *UserInfoRepository) CreateBalance(ctx context.Context, userId int, startValue uint32) error {
+	sql := `INSERT INTO balances (user_id, balance) VALUES ($1, $2)`
+	_, err := uif.queryExecuter.Exec(ctx, sql, userId, startValue)
+	return err
+}
+
+func (uif *UserInfoRepository) FetchUserPurchases(ctx context.Context, userId int) (map[domain.Good]uint32, error) {
 	defer func() {
 		if r := recover(); r != nil {
 			uif.logger.Error("panic recovered in FetchUserPurchases", "error", r)
@@ -67,7 +78,7 @@ func (uif *UserInfoFetcher) FetchUserPurchases(ctx context.Context, userId int) 
 			JOIN goods g ON p.good_id = g.id
 			WHERE p.user_id = $1
 			GROUP BY g.name`
-	rows, err := uif.querier.Query(ctx, sql, userId)
+	rows, err := uif.queryExecuter.Query(ctx, sql, userId)
 	if err != nil {
 		return nil, err
 	}
@@ -87,7 +98,7 @@ func (uif *UserInfoFetcher) FetchUserPurchases(ctx context.Context, userId int) 
 	return goods, nil
 }
 
-func (uif *UserInfoFetcher) FetchUserCoinTransfers(ctx context.Context, userId int) (domain.CoinTransferHistory, error) {
+func (uif *UserInfoRepository) FetchUserCoinTransfers(ctx context.Context, userId int) (domain.CoinTransferHistory, error) {
 	defer func() {
 		if r := recover(); r != nil {
 			uif.logger.Error("panic recovered in FetchUserCoinTransfers", "error", r)
@@ -107,7 +118,7 @@ JOIN users u_from ON transactions.from_user_id = u_from.id
 JOIN users u_to  ON transactions.to_user_id = u_to.id
 WHERE to_user_id = $1;
 `
-	rows, err := uif.querier.Query(ctx, sql, userId)
+	rows, err := uif.queryExecuter.Query(ctx, sql, userId)
 	if err != nil {
 		return domain.CoinTransferHistory{}, err
 	}

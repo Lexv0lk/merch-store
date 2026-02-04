@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestUserInfoFetcher_FetchMainUserInfo(t *testing.T) {
+func TestUserInfoRepository_FetchUsername(t *testing.T) {
 	t.Parallel()
 
 	type testCase struct {
@@ -19,7 +19,7 @@ func TestUserInfoFetcher_FetchMainUserInfo(t *testing.T) {
 
 		prepareFn func(t *testing.T, mock pgxmock.PgxConnIface)
 
-		expectedUserInfo domain.MainUserInfo
+		expectedUsername string
 		expectedErr      error
 	}
 
@@ -29,17 +29,14 @@ func TestUserInfoFetcher_FetchMainUserInfo(t *testing.T) {
 			userId: 1,
 			prepareFn: func(t *testing.T, mock pgxmock.PgxConnIface) {
 				t.Helper()
-				rows := pgxmock.NewRows([]string{"username", "balance"}).
-					AddRow("testuser", uint32(1000))
+				rows := pgxmock.NewRows([]string{"username"}).
+					AddRow("testuser")
 				mock.ExpectQuery("SELECT").
 					WithArgs(1).
 					WillReturnRows(rows)
 			},
-			expectedUserInfo: domain.MainUserInfo{
-				Username: "testuser",
-				Balance:  1000,
-			},
-			expectedErr: nil,
+			expectedUsername: "testuser",
+			expectedErr:      nil,
 		},
 		{
 			name:   "user not found",
@@ -50,7 +47,7 @@ func TestUserInfoFetcher_FetchMainUserInfo(t *testing.T) {
 					WithArgs(999).
 					WillReturnError(pgx.ErrNoRows)
 			},
-			expectedUserInfo: domain.MainUserInfo{},
+			expectedUsername: "",
 			expectedErr:      &domain.UserNotFoundError{},
 		},
 		{
@@ -62,7 +59,7 @@ func TestUserInfoFetcher_FetchMainUserInfo(t *testing.T) {
 					WithArgs(1).
 					WillReturnError(assert.AnError)
 			},
-			expectedUserInfo: domain.MainUserInfo{},
+			expectedUsername: "",
 			expectedErr:      assert.AnError,
 		},
 	}
@@ -77,20 +74,159 @@ func TestUserInfoFetcher_FetchMainUserInfo(t *testing.T) {
 
 			tt.prepareFn(t, mock)
 
-			fetcher := NewUserInfoFetcher(mock, nil)
-			userInfo, err := fetcher.FetchMainUserInfo(t.Context(), tt.userId)
+			fetcher := NewUserInfoRepository(mock, nil)
+			username, err := fetcher.FetchUsername(t.Context(), tt.userId)
 
 			if tt.expectedErr != nil {
 				assert.ErrorIs(t, err, tt.expectedErr)
 			} else {
 				assert.NoError(t, err)
-				assert.Equal(t, tt.expectedUserInfo, userInfo)
+				assert.Equal(t, tt.expectedUsername, username)
 			}
 		})
 	}
 }
 
-func TestUserInfoFetcher_FetchUserPurchases(t *testing.T) {
+func TestUserInfoRepository_FetchUserBalance(t *testing.T) {
+	t.Parallel()
+
+	type testCase struct {
+		name   string
+		userId int
+
+		prepareFn func(t *testing.T, mock pgxmock.PgxConnIface)
+
+		expectedBalance uint32
+		expectedErr     error
+	}
+
+	testCases := []testCase{
+		{
+			name:   "balance found",
+			userId: 1,
+			prepareFn: func(t *testing.T, mock pgxmock.PgxConnIface) {
+				t.Helper()
+				rows := pgxmock.NewRows([]string{"balance"}).
+					AddRow(uint32(1000))
+				mock.ExpectQuery("SELECT").
+					WithArgs(1).
+					WillReturnRows(rows)
+			},
+			expectedBalance: 1000,
+			expectedErr:     nil,
+		},
+		{
+			name:   "balance not found",
+			userId: 999,
+			prepareFn: func(t *testing.T, mock pgxmock.PgxConnIface) {
+				t.Helper()
+				mock.ExpectQuery("SELECT").
+					WithArgs(999).
+					WillReturnError(pgx.ErrNoRows)
+			},
+			expectedBalance: 0,
+			expectedErr:     &domain.BalanceNotFoundError{},
+		},
+		{
+			name:   "database error",
+			userId: 1,
+			prepareFn: func(t *testing.T, mock pgxmock.PgxConnIface) {
+				t.Helper()
+				mock.ExpectQuery("SELECT").
+					WithArgs(1).
+					WillReturnError(assert.AnError)
+			},
+			expectedBalance: 0,
+			expectedErr:     assert.AnError,
+		},
+	}
+
+	for _, tc := range testCases {
+		tt := tc
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			mock, err := pgxmock.NewConn()
+			require.NoError(t, err)
+			defer mock.Close(t.Context())
+
+			tt.prepareFn(t, mock)
+
+			fetcher := NewUserInfoRepository(mock, nil)
+			balance, err := fetcher.FetchUserBalance(t.Context(), tt.userId)
+
+			if tt.expectedErr != nil {
+				assert.ErrorIs(t, err, tt.expectedErr)
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, tt.expectedBalance, balance)
+			}
+		})
+	}
+}
+
+func TestUserInfoRepository_CreateBalance(t *testing.T) {
+	t.Parallel()
+
+	type testCase struct {
+		name       string
+		userId     int
+		startValue uint32
+
+		prepareFn func(t *testing.T, mock pgxmock.PgxConnIface)
+
+		expectedErr error
+	}
+
+	testCases := []testCase{
+		{
+			name:       "balance created successfully",
+			userId:     1,
+			startValue: 1000,
+			prepareFn: func(t *testing.T, mock pgxmock.PgxConnIface) {
+				t.Helper()
+				mock.ExpectExec("INSERT INTO balances").
+					WithArgs(1, uint32(1000)).
+					WillReturnResult(pgxmock.NewResult("INSERT", 1))
+			},
+			expectedErr: nil,
+		},
+		{
+			name:       "database error",
+			userId:     1,
+			startValue: 1000,
+			prepareFn: func(t *testing.T, mock pgxmock.PgxConnIface) {
+				t.Helper()
+				mock.ExpectExec("INSERT INTO balances").
+					WithArgs(1, uint32(1000)).
+					WillReturnError(assert.AnError)
+			},
+			expectedErr: assert.AnError,
+		},
+	}
+
+	for _, tc := range testCases {
+		tt := tc
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			mock, err := pgxmock.NewConn()
+			require.NoError(t, err)
+			defer mock.Close(t.Context())
+
+			tt.prepareFn(t, mock)
+
+			repo := NewUserInfoRepository(mock, nil)
+			err = repo.CreateBalance(t.Context(), tt.userId, tt.startValue)
+
+			if tt.expectedErr != nil {
+				assert.ErrorIs(t, err, tt.expectedErr)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestUserInfoRepository_FetchUserPurchases(t *testing.T) {
 	t.Parallel()
 
 	type testCase struct {
@@ -159,7 +295,7 @@ func TestUserInfoFetcher_FetchUserPurchases(t *testing.T) {
 
 			tt.prepareFn(t, mock)
 
-			fetcher := NewUserInfoFetcher(mock, nil)
+			fetcher := NewUserInfoRepository(mock, nil)
 			purchases, err := fetcher.FetchUserPurchases(t.Context(), tt.userId)
 
 			if tt.expectedErr != nil {
@@ -172,7 +308,7 @@ func TestUserInfoFetcher_FetchUserPurchases(t *testing.T) {
 	}
 }
 
-func TestUserInfoFetcher_FetchUserCoinTransfers(t *testing.T) {
+func TestUserInfoRepository_FetchUserCoinTransfers(t *testing.T) {
 	t.Parallel()
 
 	type testCase struct {
@@ -272,7 +408,7 @@ func TestUserInfoFetcher_FetchUserCoinTransfers(t *testing.T) {
 
 			tt.prepareFn(t, mock)
 
-			fetcher := NewUserInfoFetcher(mock, nil)
+			fetcher := NewUserInfoRepository(mock, nil)
 			history, err := fetcher.FetchUserCoinTransfers(t.Context(), tt.userId)
 
 			if tt.expectedErr != nil {

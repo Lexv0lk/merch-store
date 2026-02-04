@@ -2,10 +2,12 @@ package domain
 
 import "context"
 
-type UserInfoFetcher interface {
-	FetchMainUserInfo(ctx context.Context, userId int) (MainUserInfo, error)
+type UserInfoRepository interface {
+	FetchUsername(ctx context.Context, userId int) (string, error)
+	FetchUserBalance(ctx context.Context, userId int) (uint32, error)
 	FetchUserPurchases(ctx context.Context, userId int) (map[Good]uint32, error)
 	FetchUserCoinTransfers(ctx context.Context, userId int) (CoinTransferHistory, error)
+	CreateBalance(ctx context.Context, userId int, startValue uint32) error
 }
 
 type MainUserInfo struct {

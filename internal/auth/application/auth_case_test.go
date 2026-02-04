@@ -40,11 +40,10 @@ func TestAuthenticator_Authenticate(t *testing.T) {
 
 				usersRepo.EXPECT().TryGetUserInfo(gomock.Any(), "newuser").Return(domain.UserInfo{}, false, nil)
 				passwordHasher.EXPECT().HashPassword("password123").Return("hashed_password", nil)
-				usersRepo.EXPECT().CreateUser(gomock.Any(), "newuser", "hashed_password", 1000).Return(domain.UserInfo{
+				usersRepo.EXPECT().CreateUser(gomock.Any(), "newuser", "hashed_password").Return(domain.UserInfo{
 					ID:           1,
 					Username:     "newuser",
 					PasswordHash: "hashed_password",
-					Balance:      1000,
 				}, nil)
 				tokenIssuer.EXPECT().IssueToken([]byte("secret"), 1, "newuser", time.Hour).Return("jwt_token", nil)
 
@@ -67,7 +66,6 @@ func TestAuthenticator_Authenticate(t *testing.T) {
 					ID:           2,
 					Username:     "existinguser",
 					PasswordHash: "stored_hash",
-					Balance:      500,
 				}, true, nil)
 				passwordHasher.EXPECT().VerifyPassword("correctpassword", "stored_hash").Return(true, nil)
 				tokenIssuer.EXPECT().IssueToken([]byte("secret"), 2, "existinguser", time.Hour).Return("jwt_token", nil)
@@ -91,7 +89,6 @@ func TestAuthenticator_Authenticate(t *testing.T) {
 					ID:           2,
 					Username:     "existinguser",
 					PasswordHash: "stored_hash",
-					Balance:      500,
 				}, true, nil)
 				passwordHasher.EXPECT().VerifyPassword("wrongpassword", "stored_hash").Return(false, nil)
 
@@ -147,7 +144,7 @@ func TestAuthenticator_Authenticate(t *testing.T) {
 
 				usersRepo.EXPECT().TryGetUserInfo(gomock.Any(), "newuser").Return(domain.UserInfo{}, false, nil)
 				passwordHasher.EXPECT().HashPassword("password").Return("hashed_password", nil)
-				usersRepo.EXPECT().CreateUser(gomock.Any(), "newuser", "hashed_password", 1000).Return(domain.UserInfo{}, assert.AnError)
+				usersRepo.EXPECT().CreateUser(gomock.Any(), "newuser", "hashed_password").Return(domain.UserInfo{}, assert.AnError)
 
 				return usersRepo, passwordHasher, tokenIssuer
 			},
@@ -188,11 +185,10 @@ func TestAuthenticator_Authenticate(t *testing.T) {
 
 				usersRepo.EXPECT().TryGetUserInfo(gomock.Any(), "newuser").Return(domain.UserInfo{}, false, nil)
 				passwordHasher.EXPECT().HashPassword("password").Return("hashed_password", nil)
-				usersRepo.EXPECT().CreateUser(gomock.Any(), "newuser", "hashed_password", 1000).Return(domain.UserInfo{
+				usersRepo.EXPECT().CreateUser(gomock.Any(), "newuser", "hashed_password").Return(domain.UserInfo{
 					ID:           1,
 					Username:     "newuser",
 					PasswordHash: "hashed_password",
-					Balance:      1000,
 				}, nil)
 				tokenIssuer.EXPECT().IssueToken([]byte("secret"), 1, "newuser", time.Hour).Return("", assert.AnError)
 
