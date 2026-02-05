@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"net"
 	"os"
 	"os/signal"
 	"syscall"
@@ -33,13 +34,19 @@ func main() {
 		GrpcStorePort: grpcStorePort,
 		GrpcAuthHost:  grpcAuthHost,
 		GrpcStoreHost: grpcStoreHost,
-		HttpPort:      httpPort,
 	}
 
 	gatewayApp := bootstrap.NewGatewayApp(cfg, defaultLogger)
 
 	go func() {
-		if err := gatewayApp.Run(mainCtx); err != nil {
+		lis, err := net.Listen("tcp", "localhost"+httpPort)
+		if err != nil {
+			defaultLogger.Error("failed to listen on HTTP port", "error", err.Error())
+			stop()
+			return
+		}
+
+		if err := gatewayApp.Run(mainCtx, lis); err != nil {
 			defaultLogger.Error("gateway app run failed", "error", err.Error())
 			stop()
 		}

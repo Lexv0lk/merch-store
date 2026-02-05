@@ -34,7 +34,7 @@ func NewAuthApp(cfg AuthConfig, logger logging.Logger) *AuthApp {
 	}
 }
 
-func (a *AuthApp) Run(ctx context.Context) error {
+func (a *AuthApp) Run(ctx context.Context, grpcLis net.Listener) error {
 	logger := a.logger
 	databaseSettings := a.cfg.DbSettings
 	dbURL := databaseSettings.GetUrl()
@@ -47,21 +47,20 @@ func (a *AuthApp) Run(ctx context.Context) error {
 
 	passwordHasher := domain.NewArgonPasswordHasher()
 	tokenIssuer := jwt.NewJWTTokenIssuer()
-	postgresUserRepository := postgres.NewUsersRepository(dbpool)
+	postgresUserRepository := postgres.NewUsersRepository(dbpool, logger)
 
 	authenticator := application.NewAuthenticator(postgresUserRepository, passwordHasher, tokenIssuer, a.cfg.SecretKey)
 
-	server, lis, err := createGRPCServer(authenticator, logger, a.cfg.GrpcPort)
-	if err != nil {
-		return fmt.Errorf("failed to create gRPC server: %w", err)
-	}
+	grpcServer := grpc.NewServer()
+	authServer := grpcwrap.NewAuthServerGRPC(authenticator, logger)
+	merchapi.RegisterAuthServiceServer(grpcServer, authServer)
 
-	a.grpcServer = server
+	a.grpcServer = grpcServer
 
 	errChan := make(chan error, 1)
 	go func() {
 		logger.Info("starting gRPC server", "port", a.cfg.GrpcPort)
-		if err := server.Serve(lis); err != nil {
+		if err := grpcServer.Serve(grpcLis); err != nil {
 			errChan <- fmt.Errorf("failed to serve gRPC: %w", err)
 			return
 		}
@@ -85,18 +84,4 @@ func (a *AuthApp) Shutdown() {
 	a.logger.Info("shutting down gRPC server")
 	a.grpcServer.GracefulStop()
 	a.logger.Info("gRPC server stopped")
-}
-
-func createGRPCServer(authenticator jwt.Authenticator, logger logging.Logger, port string) (*grpc.Server, net.Listener, error) {
-	lis, err := net.Listen(networkProtocol, port)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	grpcServer := grpc.NewServer()
-	authServer := grpcwrap.NewAuthServerGRPC(authenticator, logger)
-
-	merchapi.RegisterAuthServiceServer(grpcServer, authServer)
-
-	return grpcServer, lis, nil
 }

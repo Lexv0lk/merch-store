@@ -7,6 +7,11 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 )
 
+type TxQuerier interface {
+	TxBeginner
+	Querier
+}
+
 type QueryTxBeginner interface {
 	Querier
 	TxBeginner

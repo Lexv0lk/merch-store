@@ -145,35 +145,6 @@ func TestUserInfoCase_GetUserInfo(t *testing.T) {
 			},
 			expectedErr: nil,
 		},
-		{
-			name:   "balance not found - creates new balance",
-			userId: 3,
-			prepareFn: func(t *testing.T, ctrl *gomock.Controller) (domain.UserInfoRepository, logging.Logger) {
-				infoRepository := storemocks.NewMockUserInfoRepository(ctrl)
-				logger := loggingmocks.NewMockLogger(ctrl)
-
-				infoRepository.EXPECT().FetchUsername(gomock.Any(), 3).Return("newuser", nil)
-				infoRepository.EXPECT().FetchUserBalance(gomock.Any(), 3).Return(uint32(0), &domain.BalanceNotFoundError{Msg: "balance not found"})
-				infoRepository.EXPECT().CreateBalance(gomock.Any(), 3, uint32(1000)).Return(nil)
-				infoRepository.EXPECT().FetchUserPurchases(gomock.Any(), 3).Return(map[domain.Good]uint32{}, nil)
-				infoRepository.EXPECT().FetchUserCoinTransfers(gomock.Any(), 3).Return(domain.CoinTransferHistory{
-					IncomingTransfers:  []domain.DirectTransfer{},
-					OutcomingTransfers: []domain.DirectTransfer{},
-				}, nil)
-
-				return infoRepository, logger
-			},
-			expectedUserInfo: domain.TotalUserInfo{
-				Username: "newuser",
-				Balance:  1000,
-				Goods:    map[domain.Good]uint32{},
-				CoinTransferHistory: domain.CoinTransferHistory{
-					IncomingTransfers:  []domain.DirectTransfer{},
-					OutcomingTransfers: []domain.DirectTransfer{},
-				},
-			},
-			expectedErr: nil,
-		},
 	}
 
 	for _, tc := range tests {

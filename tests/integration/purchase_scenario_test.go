@@ -5,17 +5,20 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"io"
+	"log/slog"
+	"net"
 	"net/http"
 	"time"
 
 	authboot "github.com/Lexv0lk/merch-store/internal/auth/bootstrap"
+	auth "github.com/Lexv0lk/merch-store/internal/auth/domain"
 	gatewayboot "github.com/Lexv0lk/merch-store/internal/gateway/bootstrap"
 	gateway "github.com/Lexv0lk/merch-store/internal/gateway/domain"
 	"github.com/Lexv0lk/merch-store/internal/pkg/database"
 	"github.com/Lexv0lk/merch-store/internal/pkg/logging"
 	storeboot "github.com/Lexv0lk/merch-store/internal/store/bootstrap"
-	store "github.com/Lexv0lk/merch-store/internal/store/domain"
 	"github.com/gin-gonic/gin"
 	"github.com/pressly/goose/v3"
 	"github.com/stretchr/testify/assert"
@@ -31,6 +34,7 @@ import (
 const (
 	cupCost      = 20
 	umbrellaCost = 200
+	httpHost     = "127.0.0.1"
 )
 
 type authResponse struct {
@@ -38,10 +42,88 @@ type authResponse struct {
 }
 
 func TestPurchaseScenario(t *testing.T) {
-	//nopLogger := slog.New(slog.NewTextHandler(io.Discard, nil))
-	nopLogger := logging.StdoutLogger
+	t.Parallel()
+	iterations := 3
+
+	nopLogger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	//nopLogger := logging.StdoutLogger
 	gin.SetMode(gin.TestMode)
 
+	for i := 0; i < iterations; i++ {
+		t.Run(fmt.Sprintf("iteration %d", i+1), func(t *testing.T) {
+			t.Parallel()
+
+			pg := setupDatabase(t)
+
+			dbSettings := database.PostgresSettings{
+				User:       "admin",
+				Password:   "password",
+				DBName:     "merch_store_db",
+				SSlEnabled: false,
+			}
+
+			dbHost, err := pg.Host(t.Context())
+			require.NoError(t, err)
+			dbPort, err := pg.MappedPort(t.Context(), "5432/tcp")
+			require.NoError(t, err)
+
+			dbSettings.Host = dbHost
+			dbSettings.Port = dbPort.Port()
+
+			authPort := runAuthService(t, dbSettings, nopLogger)
+			storePort := runStoreService(t, dbSettings, nopLogger)
+			httpPort := runGatewayService(t, authPort, storePort, nopLogger)
+
+			waitForGateway(t.Context(), t, httpPort, 10*time.Second)
+
+			// AUTHORIZATION
+			token := proceedAuthorization(t, httpPort)
+
+			// PURCHASE 2 ITEMS
+			proceedPurchase(t, httpPort, token, "cup")
+			proceedPurchase(t, httpPort, token, "umbrella")
+
+			// CHECK ACCOUNT INFO
+			expectedInfo := gateway.UserInfo{
+				Balance: auth.StartBalance - cupCost - umbrellaCost,
+				Inventory: []gateway.InventoryItem{
+					{Name: "cup", Quantity: 1},
+					{Name: "umbrella", Quantity: 1},
+				},
+				TransferHistory: gateway.TransferHistory{
+					Received: []gateway.ReceivedTransfer{},
+					Sent:     []gateway.SentTransfer{},
+				},
+			}
+			checkUserInfo(t, httpPort, token, expectedInfo)
+		})
+	}
+}
+
+func waitForGateway(ctx context.Context, t *testing.T, httpPort string, timeout time.Duration) {
+	deadline := time.Now().Add(timeout)
+	url := "http://" + httpHost + httpPort + "/api/info"
+
+	for {
+		if time.Now().After(deadline) {
+			require.Fail(t, "Gateway health check timed out")
+			return
+		}
+
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+		if err == nil {
+			resp, err := http.DefaultClient.Do(req)
+			if err == nil {
+				_ = resp.Body.Close()
+				if resp.StatusCode == http.StatusUnauthorized {
+					return
+				}
+			}
+		}
+	}
+}
+
+func setupDatabase(t *testing.T) *postgres.PostgresContainer {
 	pg, err := postgres.Run(
 		t.Context(),
 		"postgres:16-alpine",
@@ -70,72 +152,79 @@ func TestPurchaseScenario(t *testing.T) {
 	err = goose.Up(db, "../../migrations")
 	require.NoError(t, err)
 
-	dbSettings := database.PostgresSettings{
-		User:       "admin",
-		Password:   "password",
-		DBName:     "merch_store_db",
-		SSlEnabled: false,
-	}
+	return pg
+}
 
-	dbHost, err := pg.Host(t.Context())
+func runAuthService(t *testing.T, dbSettings database.PostgresSettings, logger logging.Logger) string {
+	lis, err := net.Listen("tcp", ":0")
 	require.NoError(t, err)
-	dbPort, err := pg.MappedPort(t.Context(), "5432/tcp")
-	require.NoError(t, err)
-
-	dbSettings.Host = dbHost
-	dbSettings.Port = dbPort.Port()
+	t.Cleanup(func() { _ = lis.Close() })
 
 	authConfig := authboot.AuthConfig{
 		DbSettings: dbSettings,
-		GrpcPort:   ":9090",
 		SecretKey:  "secret-key",
 	}
-	authApp := authboot.NewAuthApp(authConfig, nopLogger)
+	authApp := authboot.NewAuthApp(authConfig, logger)
 
 	go func() {
-		err := authApp.Run(t.Context())
+		err := authApp.Run(t.Context(), lis)
 		require.NoError(t, err)
 	}()
 	t.Cleanup(func() {
 		authApp.Shutdown()
 	})
 
+	return fmt.Sprintf(":%d", lis.Addr().(*net.TCPAddr).Port)
+}
+
+func runStoreService(t *testing.T, dbSettings database.PostgresSettings, logger logging.Logger) string {
+	lis, err := net.Listen("tcp", ":0")
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = lis.Close() })
+
 	storeConfig := storeboot.StoreConfig{
 		DbSettings: dbSettings,
-		GrpcPort:   ":9000",
 		JwtSecret:  "secret-key",
 	}
-	storeApp := storeboot.NewStoreApp(storeConfig, nopLogger)
+	storeApp := storeboot.NewStoreApp(storeConfig, logger)
 
 	go func() {
-		err := storeApp.Run(t.Context())
+		err := storeApp.Run(t.Context(), lis)
 		require.NoError(t, err)
 	}()
 	t.Cleanup(func() {
 		storeApp.Shutdown()
 	})
 
+	return fmt.Sprintf(":%d", lis.Addr().(*net.TCPAddr).Port)
+}
+
+func runGatewayService(t *testing.T, authPort, storePort string, logger logging.Logger) string {
+	lis, err := net.Listen("tcp", httpHost+":0")
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = lis.Close() })
+
 	gatewayConfig := gatewayboot.GatewayConfig{
 		GrpcAuthHost:  "localhost",
-		GrpcAuthPort:  ":9090",
+		GrpcAuthPort:  authPort,
 		GrpcStoreHost: "localhost",
-		GrpcStorePort: ":9000",
-		HttpPort:      ":8080",
+		GrpcStorePort: storePort,
 	}
-	gatewayApp := gatewayboot.NewGatewayApp(gatewayConfig, nopLogger)
+	gatewayApp := gatewayboot.NewGatewayApp(gatewayConfig, logger)
 
 	go func() {
-		err := gatewayApp.Run(t.Context())
+		err := gatewayApp.Run(t.Context(), lis)
 		require.NoError(t, err)
 	}()
 	t.Cleanup(func() {
 		gatewayApp.Shutdown()
 	})
 
-	time.Sleep(5 * time.Second)
+	return fmt.Sprintf(":%d", lis.Addr().(*net.TCPAddr).Port)
+}
 
-	// AUTH
-	authConnStr := "http://localhost:8080/api/auth"
+func proceedAuthorization(t *testing.T, httpPort string) string {
+	authConnStr := "http://" + httpHost + httpPort + "/api/auth"
 	body := map[string]string{
 		"username": "testuser",
 		"password": "testpassword",
@@ -158,10 +247,11 @@ func TestPurchaseScenario(t *testing.T) {
 	err = resp.Body.Close()
 	require.NoError(t, err)
 
-	token := authResp.Token
+	return authResp.Token
+}
 
-	// PURCHASE (1st time new account)
-	buyConnStr := "http://localhost:8080/api/buy/cup"
+func proceedPurchase(t *testing.T, port, token string, itemName string) {
+	buyConnStr := "http://" + httpHost + port + "/api/buy/" + itemName
 
 	req, err := http.NewRequest(
 		http.MethodGet,
@@ -173,37 +263,18 @@ func TestPurchaseScenario(t *testing.T) {
 	req.Header.Set("Authorization", "Bearer "+token)
 	req.Header.Set("Content-Type", "application/json")
 
-	resp, err = http.DefaultClient.Do(req)
+	resp, err := http.DefaultClient.Do(req)
 	require.NoError(t, err)
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 
 	err = resp.Body.Close()
 	require.NoError(t, err)
+}
 
-	// PURCHASE (2nd time old account)
-	buyConnStr = "http://localhost:8080/api/buy/umbrella"
+func checkUserInfo(t *testing.T, port, token string, expectedInfo gateway.UserInfo) {
+	infoConnStr := "http://" + httpHost + port + "/api/info"
 
-	req, err = http.NewRequest(
-		http.MethodGet,
-		buyConnStr,
-		nil,
-	)
-	require.NoError(t, err)
-
-	req.Header.Set("Authorization", "Bearer "+token)
-	req.Header.Set("Content-Type", "application/json")
-
-	resp, err = http.DefaultClient.Do(req)
-	require.NoError(t, err)
-	assert.Equal(t, http.StatusOK, resp.StatusCode)
-
-	err = resp.Body.Close()
-	require.NoError(t, err)
-
-	// CHECK ACCOUNT INFO
-	infoConnStr := "http://localhost:8080/api/info"
-
-	req, err = http.NewRequest(
+	req, err := http.NewRequest(
 		http.MethodGet,
 		infoConnStr,
 		nil,
@@ -213,30 +284,21 @@ func TestPurchaseScenario(t *testing.T) {
 	req.Header.Set("Authorization", "Bearer "+token)
 	req.Header.Set("Content-Type", "application/json")
 
-	resp, err = http.DefaultClient.Do(req)
+	resp, err := http.DefaultClient.Do(req)
 	require.NoError(t, err)
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 
-	expectedInfo := gateway.UserInfo{
-		Balance: store.StartBalance - cupCost - umbrellaCost,
-		Inventory: []gateway.InventoryItem{
-			{Name: "cup", Quantity: 1},
-			{Name: "umbrella", Quantity: 1},
-		},
-		TransferHistory: gateway.TransferHistory{
-			Received: []gateway.ReceivedTransfer{},
-			Sent:     []gateway.SentTransfer{},
-		},
-	}
-
 	var actualInfo gateway.UserInfo
-	respBody, err = io.ReadAll(resp.Body)
+	respBody, err := io.ReadAll(resp.Body)
 	require.NoError(t, err)
 
 	err = json.Unmarshal(respBody, &actualInfo)
 	require.NoError(t, err)
 
-	assert.Equal(t, expectedInfo, actualInfo)
+	assert.Equal(t, expectedInfo.Balance, actualInfo.Balance)
+	assert.ElementsMatch(t, expectedInfo.Inventory, actualInfo.Inventory)
+	assert.ElementsMatch(t, expectedInfo.TransferHistory.Received, actualInfo.TransferHistory.Received)
+	assert.ElementsMatch(t, expectedInfo.TransferHistory.Sent, actualInfo.TransferHistory.Sent)
 
 	err = resp.Body.Close()
 	require.NoError(t, err)

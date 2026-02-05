@@ -164,68 +164,6 @@ func TestUserInfoRepository_FetchUserBalance(t *testing.T) {
 	}
 }
 
-func TestUserInfoRepository_CreateBalance(t *testing.T) {
-	t.Parallel()
-
-	type testCase struct {
-		name       string
-		userId     int
-		startValue uint32
-
-		prepareFn func(t *testing.T, mock pgxmock.PgxConnIface)
-
-		expectedErr error
-	}
-
-	testCases := []testCase{
-		{
-			name:       "balance created successfully",
-			userId:     1,
-			startValue: 1000,
-			prepareFn: func(t *testing.T, mock pgxmock.PgxConnIface) {
-				t.Helper()
-				mock.ExpectExec("INSERT INTO balances").
-					WithArgs(1, uint32(1000)).
-					WillReturnResult(pgxmock.NewResult("INSERT", 1))
-			},
-			expectedErr: nil,
-		},
-		{
-			name:       "database error",
-			userId:     1,
-			startValue: 1000,
-			prepareFn: func(t *testing.T, mock pgxmock.PgxConnIface) {
-				t.Helper()
-				mock.ExpectExec("INSERT INTO balances").
-					WithArgs(1, uint32(1000)).
-					WillReturnError(assert.AnError)
-			},
-			expectedErr: assert.AnError,
-		},
-	}
-
-	for _, tc := range testCases {
-		tt := tc
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-			mock, err := pgxmock.NewConn()
-			require.NoError(t, err)
-			defer mock.Close(t.Context())
-
-			tt.prepareFn(t, mock)
-
-			repo := NewUserInfoRepository(mock, nil)
-			err = repo.CreateBalance(t.Context(), tt.userId, tt.startValue)
-
-			if tt.expectedErr != nil {
-				assert.ErrorIs(t, err, tt.expectedErr)
-			} else {
-				assert.NoError(t, err)
-			}
-		})
-	}
-}
-
 func TestUserInfoRepository_FetchUserPurchases(t *testing.T) {
 	t.Parallel()
 

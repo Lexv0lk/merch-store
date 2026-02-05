@@ -5,5 +5,4 @@ type GatewayConfig struct {
 	GrpcAuthPort  string
 	GrpcStoreHost string
 	GrpcStorePort string
-	HttpPort      string
 }

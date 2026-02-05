@@ -2,7 +2,7 @@ package domain
 
 import "context"
 
-const StartBalance = 1000
+const StartBalance uint32 = 1000
 
 type UsersRepository interface {
 	CreateUser(ctx context.Context, username, hashedPassword string, startBalance uint32) (UserInfo, error)

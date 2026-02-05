@@ -33,7 +33,7 @@ func NewStoreApp(cfg StoreConfig, logger logging.Logger) *StoreApp {
 	}
 }
 
-func (a *StoreApp) Run(ctx context.Context) error {
+func (a *StoreApp) Run(ctx context.Context, grpcLis net.Listener) error {
 	logger := a.logger
 	dbURL := a.cfg.DbSettings.GetUrl()
 
@@ -52,8 +52,7 @@ func (a *StoreApp) Run(ctx context.Context) error {
 	userInfoRepository := postgres.NewUserInfoRepository(dbpool, logger)
 	userInfoCase := application.NewUserInfoCase(userInfoRepository, logger)
 
-	server, lis, err := createGRPCServer(purchaseCase, sendCoinsCase, userInfoCase, logger, jwt.NewJWTTokenParser(),
-		a.cfg.GrpcPort, a.cfg.JwtSecret)
+	server, err := createGRPCServer(purchaseCase, sendCoinsCase, userInfoCase, logger, jwt.NewJWTTokenParser(), a.cfg.JwtSecret)
 	if err != nil {
 		return fmt.Errorf("failed to create gRPC server: %w", err)
 	}
@@ -62,9 +61,9 @@ func (a *StoreApp) Run(ctx context.Context) error {
 
 	errChan := make(chan error, 1)
 	go func() {
-		logger.Info("starting gRPC server", "port", a.cfg.GrpcPort)
+		logger.Info("starting gRPC server", "port", grpcLis.Addr().(*net.TCPAddr).Port)
 
-		if err := server.Serve(lis); err != nil {
+		if err := server.Serve(grpcLis); err != nil {
 			errChan <- fmt.Errorf("failed to serve gRPC: %w", err)
 			return
 		}
@@ -96,14 +95,8 @@ func createGRPCServer(
 	userInfoCase *application.UserInfoCase,
 	logger logging.Logger,
 	tokenParser jwt.TokenParser,
-	port string,
 	secretKey string,
-) (*grpc.Server, net.Listener, error) {
-	lis, err := net.Listen(networkProtocol, port)
-	if err != nil {
-		return nil, nil, err
-	}
-
+) (*grpc.Server, error) {
 	authInterceptorFabric := grpcwrap.NewAuthInterceptorFabric(secretKey, tokenParser, logger)
 	grpcServer := grpc.NewServer(
 		grpc.UnaryInterceptor(authInterceptorFabric.GetInterceptor()),
@@ -112,5 +105,5 @@ func createGRPCServer(
 
 	merchapi.RegisterMerchStoreServiceServer(grpcServer, storeServer)
 
-	return grpcServer, lis, nil
+	return grpcServer, nil
 }

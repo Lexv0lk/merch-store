@@ -3,6 +3,7 @@ package bootstrap
 import (
 	"context"
 	"fmt"
+	"net"
 	"net/http"
 	"time"
 
@@ -33,7 +34,7 @@ func NewGatewayApp(cfg GatewayConfig, logger logging.Logger) *GatewayApp {
 	}
 }
 
-func (a *GatewayApp) Run(ctx context.Context) error {
+func (a *GatewayApp) Run(ctx context.Context, httpLis net.Listener) error {
 	logger := a.logger
 	cfg := a.cfg
 
@@ -74,14 +75,13 @@ func (a *GatewayApp) Run(ctx context.Context) error {
 	}
 
 	a.server = &http.Server{
-		Addr:    cfg.HttpPort,
 		Handler: router,
 	}
 
 	errChan := make(chan error, 1)
 	go func() {
 		logger.Info("Starting server")
-		if err := a.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		if err := a.server.Serve(httpLis); err != nil && err != http.ErrServerClosed {
 			errChan <- fmt.Errorf("error while starting http server: %w", err)
 			return
 		}

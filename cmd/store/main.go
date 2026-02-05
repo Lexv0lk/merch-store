@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"net"
 	"os"
 	"os/signal"
 	"syscall"
@@ -37,7 +38,6 @@ func main() {
 	env.TrySetFromEnv(env.EnvJwtSecret, &secretKey)
 
 	cfg := bootstrap.StoreConfig{
-		GrpcPort:   grpcPort,
 		JwtSecret:  secretKey,
 		DbSettings: databaseSettings,
 	}
@@ -45,7 +45,14 @@ func main() {
 	storeApp := bootstrap.NewStoreApp(cfg, defaultLogger)
 
 	go func() {
-		if err := storeApp.Run(mainCtx); err != nil {
+		lis, err := net.Listen("tcp", grpcPort)
+		if err != nil {
+			defaultLogger.Error("failed to listen on gRPC port", "error", err.Error())
+			stop()
+			return
+		}
+
+		if err := storeApp.Run(mainCtx, lis); err != nil {
 			defaultLogger.Error("store app run failed", "error", err.Error())
 			stop()
 		}

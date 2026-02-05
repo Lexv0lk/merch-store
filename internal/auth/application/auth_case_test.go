@@ -40,7 +40,7 @@ func TestAuthenticator_Authenticate(t *testing.T) {
 
 				usersRepo.EXPECT().TryGetUserInfo(gomock.Any(), "newuser").Return(domain.UserInfo{}, false, nil)
 				passwordHasher.EXPECT().HashPassword("password123").Return("hashed_password", nil)
-				usersRepo.EXPECT().CreateUser(gomock.Any(), "newuser", "hashed_password").Return(domain.UserInfo{
+				usersRepo.EXPECT().CreateUser(gomock.Any(), "newuser", "hashed_password", domain.StartBalance).Return(domain.UserInfo{
 					ID:           1,
 					Username:     "newuser",
 					PasswordHash: "hashed_password",
@@ -144,7 +144,7 @@ func TestAuthenticator_Authenticate(t *testing.T) {
 
 				usersRepo.EXPECT().TryGetUserInfo(gomock.Any(), "newuser").Return(domain.UserInfo{}, false, nil)
 				passwordHasher.EXPECT().HashPassword("password").Return("hashed_password", nil)
-				usersRepo.EXPECT().CreateUser(gomock.Any(), "newuser", "hashed_password").Return(domain.UserInfo{}, assert.AnError)
+				usersRepo.EXPECT().CreateUser(gomock.Any(), "newuser", "hashed_password", domain.StartBalance).Return(domain.UserInfo{}, assert.AnError)
 
 				return usersRepo, passwordHasher, tokenIssuer
 			},
@@ -185,7 +185,7 @@ func TestAuthenticator_Authenticate(t *testing.T) {
 
 				usersRepo.EXPECT().TryGetUserInfo(gomock.Any(), "newuser").Return(domain.UserInfo{}, false, nil)
 				passwordHasher.EXPECT().HashPassword("password").Return("hashed_password", nil)
-				usersRepo.EXPECT().CreateUser(gomock.Any(), "newuser", "hashed_password").Return(domain.UserInfo{
+				usersRepo.EXPECT().CreateUser(gomock.Any(), "newuser", "hashed_password", domain.StartBalance).Return(domain.UserInfo{
 					ID:           1,
 					Username:     "newuser",
 					PasswordHash: "hashed_password",

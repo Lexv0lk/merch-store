@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"net"
 	"os"
 	"os/signal"
 	"syscall"
@@ -45,7 +46,14 @@ func main() {
 	authApp := bootstrap.NewAuthApp(authCfg, defaultLogger)
 
 	go func() {
-		if err := authApp.Run(mainCtx); err != nil {
+		lis, err := net.Listen("tcp", grpcPort)
+		if err != nil {
+			defaultLogger.Error("Failed to listen on gRPC port", "error", err)
+			stop()
+			return
+		}
+
+		if err := authApp.Run(mainCtx, lis); err != nil {
 			defaultLogger.Error("Failed to run auth service", "error", err)
 			stop()
 		}
