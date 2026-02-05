@@ -61,12 +61,6 @@ func (uif *UserInfoRepository) FetchUserBalance(ctx context.Context, userId int)
 	return balance, nil
 }
 
-func (uif *UserInfoRepository) CreateBalance(ctx context.Context, userId int, startValue uint32) error {
-	sql := `INSERT INTO balances (user_id, balance) VALUES ($1, $2)`
-	_, err := uif.queryExecuter.Exec(ctx, sql, userId, startValue)
-	return err
-}
-
 func (uif *UserInfoRepository) FetchUserPurchases(ctx context.Context, userId int) (map[domain.Good]uint32, error) {
 	defer func() {
 		if r := recover(); r != nil {

@@ -6,13 +6,11 @@ import (
 	"net"
 
 	merchapi "github.com/Lexv0lk/merch-store/gen/merch/v1"
-	"github.com/Lexv0lk/merch-store/internal/pkg/database"
 	"github.com/Lexv0lk/merch-store/internal/pkg/jwt"
 	"github.com/Lexv0lk/merch-store/internal/pkg/logging"
 	"github.com/Lexv0lk/merch-store/internal/store/application"
 	grpcwrap "github.com/Lexv0lk/merch-store/internal/store/grpc"
 	"github.com/Lexv0lk/merch-store/internal/store/infrastructure/postgres"
-	storemigrationsfs "github.com/Lexv0lk/merch-store/migrations/store"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"google.golang.org/grpc"
 )
@@ -38,11 +36,6 @@ func NewStoreApp(cfg StoreConfig, logger logging.Logger) *StoreApp {
 func (a *StoreApp) Run(ctx context.Context) error {
 	logger := a.logger
 	dbURL := a.cfg.DbSettings.GetUrl()
-
-	err := database.MigrateDatabase(dbURL, &storemigrationsfs.StoreMigrations, ".", "pgx", "postgres")
-	if err != nil {
-		return fmt.Errorf("database migration failed: %w", err)
-	}
 
 	dbpool, err := pgxpool.New(ctx, dbURL)
 	if err != nil {

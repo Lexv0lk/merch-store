@@ -72,7 +72,7 @@ func (ph *PurchaseHandler) HandlePurchase(ctx context.Context, userId int, goodN
 }
 
 func processPurchase(ctx context.Context, executor database.Executor, userId int, good goodInfo) error {
-	updateBalanceSQL := `UPDATE users SET balance = balance - $1 WHERE id = $2`
+	updateBalanceSQL := `UPDATE balances SET balance = balance - $1 WHERE user_id = $2`
 	_, err := executor.Exec(ctx, updateBalanceSQL, good.price, userId)
 	if err != nil {
 		return fmt.Errorf("failed to update user balance: %w", err)
@@ -88,7 +88,7 @@ func processPurchase(ctx context.Context, executor database.Executor, userId int
 }
 
 func lockUserBalance(ctx context.Context, querier database.Querier, userId int) (int, error) {
-	lockUserSQL := `SELECT balance FROM users WHERE id = $1 FOR UPDATE`
+	lockUserSQL := `SELECT balance FROM balances WHERE user_id = $1 FOR UPDATE`
 
 	var balance int
 	err := querier.QueryRow(ctx, lockUserSQL, userId).Scan(&balance)

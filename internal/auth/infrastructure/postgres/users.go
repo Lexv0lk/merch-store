@@ -19,7 +19,7 @@ func NewUsersRepository(queryExecuter database.QueryExecuter) *UsersRepository {
 	}
 }
 
-func (r *UsersRepository) CreateUser(ctx context.Context, username, hashedPassword string) (domain.UserInfo, error) {
+func (r *UsersRepository) CreateUser(ctx context.Context, username, hashedPassword string, startBalance uint32) (domain.UserInfo, error) {
 	creationSQL := `INSERT INTO users (username, password_hash) VALUES ($1, $2) RETURNING id, username, password_hash`
 
 	var userInfo domain.UserInfo

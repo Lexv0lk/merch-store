@@ -7,7 +7,6 @@ type UserInfoRepository interface {
 	FetchUserBalance(ctx context.Context, userId int) (uint32, error)
 	FetchUserPurchases(ctx context.Context, userId int) (map[Good]uint32, error)
 	FetchUserCoinTransfers(ctx context.Context, userId int) (CoinTransferHistory, error)
-	CreateBalance(ctx context.Context, userId int, startValue uint32) error
 }
 
 type MainUserInfo struct {

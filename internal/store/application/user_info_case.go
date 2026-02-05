@@ -2,15 +2,10 @@ package application
 
 import (
 	"context"
-	"errors"
 
 	"github.com/Lexv0lk/merch-store/internal/pkg/logging"
 	"github.com/Lexv0lk/merch-store/internal/store/domain"
 	"golang.org/x/sync/errgroup"
-)
-
-const (
-	startBalance = 1000
 )
 
 type UserInfoCase struct {
@@ -41,14 +36,7 @@ func (uic *UserInfoCase) GetUserInfo(ctx context.Context, userId int) (domain.To
 		}
 
 		balance, err := uic.userRepository.FetchUserBalance(groupCtx, userId)
-		if errors.Is(err, &domain.BalanceNotFoundError{}) {
-			err = uic.userRepository.CreateBalance(groupCtx, userId, startBalance)
-			if err != nil {
-				return err
-			}
-
-			balance = startBalance
-		} else if err != nil {
+		if err != nil {
 			return err
 		}
 
