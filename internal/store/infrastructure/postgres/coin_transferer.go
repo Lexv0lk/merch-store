@@ -82,7 +82,7 @@ func (pct *CoinsTransferer) TransferCoins(ctx context.Context, fromUsername stri
 }
 
 func proceedTransaction(ctx context.Context, executor database.Executor, amount uint32, fromUser, toUser *userInfo) error {
-	updateBalanceSQL := `UPDATE users SET balance = balance - $1 WHERE id = $2 AND balance >= $1`
+	updateBalanceSQL := `UPDATE balances SET balance = balance - $1 WHERE user_id = $2 AND balance >= $1`
 	tag, err := executor.Exec(ctx, updateBalanceSQL, amount, fromUser.Id)
 	if err != nil {
 		return fmt.Errorf("failed to update balance for fromUser: %w", err)
@@ -90,7 +90,7 @@ func proceedTransaction(ctx context.Context, executor database.Executor, amount 
 		return &domain.InsufficientBalanceError{}
 	}
 
-	updateBalanceSQL = `UPDATE users SET balance = balance + $1 WHERE id = $2`
+	updateBalanceSQL = `UPDATE balances SET balance = balance + $1 WHERE user_id = $2`
 	_, err = executor.Exec(ctx, updateBalanceSQL, amount, toUser.Id)
 	if err != nil {
 		return fmt.Errorf("failed to update balance for toUser: %w", err)
@@ -106,7 +106,12 @@ func proceedTransaction(ctx context.Context, executor database.Executor, amount 
 }
 
 func getTargetUsers(ctx context.Context, querier database.Querier, fromUsername, toUsername string) ([]userInfo, error) {
-	usersSelectSQL := `SELECT id, username, balance FROM users WHERE username = ANY($1) ORDER BY id FOR UPDATE`
+	usersSelectSQL := `SELECT u.id, u.username, b.balance
+FROM users u
+JOIN balances b ON b.user_id = u.id
+WHERE u.username = ANY($1)
+ORDER BY u.id
+FOR UPDATE`
 	rows, err := querier.Query(ctx, usersSelectSQL, []string{fromUsername, toUsername})
 	if err != nil {
 		return nil, fmt.Errorf("failed to select users for update: %w", err)
