@@ -39,7 +39,7 @@ func main() {
 	gatewayApp := bootstrap.NewGatewayApp(cfg, defaultLogger)
 
 	go func() {
-		lis, err := net.Listen("tcp", "localhost"+httpPort)
+		lis, err := net.Listen("tcp", httpPort)
 		if err != nil {
 			defaultLogger.Error("failed to listen on HTTP port", "error", err.Error())
 			stop()

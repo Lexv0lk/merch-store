@@ -16,6 +16,12 @@ ON CONFLICT (name) DO NOTHING;
 
 -- +goose Down
 -- +goose StatementBegin
+DELETE FROM purchases
+WHERE good_id IN (
+    SELECT id FROM goods
+    WHERE name IN ('t-shirt','cup','book','pen','powerbank','hoody','umbrella','socks','wallet','pink-hoody')
+);
+
 DELETE FROM goods WHERE name IN
 ('t-shirt', 'cup', 'book', 'pen', 'powerbank', 'hoody', 'umbrella', 'socks', 'wallet', 'pink-hoody');
 -- +goose StatementEnd
