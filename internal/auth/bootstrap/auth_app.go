@@ -25,6 +25,7 @@ type AuthApp struct {
 	logger logging.Logger
 
 	grpcServer *grpc.Server
+	dbpool     *pgxpool.Pool
 }
 
 func NewAuthApp(cfg AuthConfig, logger logging.Logger) *AuthApp {
@@ -43,7 +44,8 @@ func (a *AuthApp) Run(ctx context.Context, grpcLis net.Listener) error {
 	if err != nil {
 		return fmt.Errorf("failed to connect to database: %w", err)
 	}
-	defer dbpool.Close()
+
+	a.dbpool = dbpool
 
 	passwordHasher := domain.NewArgonPasswordHasher()
 	tokenIssuer := jwt.NewJWTTokenIssuer()
@@ -83,5 +85,6 @@ func (a *AuthApp) Shutdown() {
 
 	a.logger.Info("shutting down gRPC server")
 	a.grpcServer.GracefulStop()
+	a.dbpool.Close()
 	a.logger.Info("gRPC server stopped")
 }

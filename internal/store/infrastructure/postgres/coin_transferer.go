@@ -32,8 +32,6 @@ func NewCoinsTransferer(txBeginner database.TxBeginner, logger logging.Logger) *
 func (pct *CoinsTransferer) TransferCoins(ctx context.Context, fromUsername string, toUsername string, amount uint32) error {
 	if fromUsername == toUsername {
 		return &domain.InvalidArgumentsError{Msg: "fromUsername must differ from toUsername"}
-	} else if amount <= 0 {
-		return &domain.InvalidArgumentsError{Msg: "amount must be positive"}
 	}
 
 	tx, err := pct.txBeginner.BeginTx(ctx, pgx.TxOptions{

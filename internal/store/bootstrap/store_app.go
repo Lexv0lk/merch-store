@@ -24,6 +24,7 @@ type StoreApp struct {
 	logger logging.Logger
 
 	server *grpc.Server
+	dbpool *pgxpool.Pool
 }
 
 func NewStoreApp(cfg StoreConfig, logger logging.Logger) *StoreApp {
@@ -41,7 +42,8 @@ func (a *StoreApp) Run(ctx context.Context, grpcLis net.Listener) error {
 	if err != nil {
 		return fmt.Errorf("failed to connect to database: %w", err)
 	}
-	defer dbpool.Close()
+
+	a.dbpool = dbpool
 
 	purchaseHandler := postgres.NewPurchaseHandler(dbpool, logger)
 	purchaseCase := application.NewPurchaseCase(purchaseHandler)
@@ -86,6 +88,7 @@ func (a *StoreApp) Shutdown() {
 
 	a.logger.Info("shutting down gRPC server")
 	a.server.GracefulStop()
+	a.dbpool.Close()
 	a.logger.Info("gRPC server stopped")
 }
 

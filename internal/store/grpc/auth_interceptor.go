@@ -11,11 +11,6 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-const (
-	userIDContextKey   = "user_id"
-	usernameContextKey = "username"
-)
-
 type AuthInterceptorFabric struct {
 	secretKey   string
 	tokenParser jwt.TokenParser
@@ -53,7 +48,7 @@ func (i *AuthInterceptorFabric) GetInterceptor() grpc.UnaryServerInterceptor {
 			return nil, status.Error(codes.Unauthenticated, "invalid token")
 		}
 
-		newCtx := context.WithValue(ctx, userIDContextKey, userClaims.UserID)
+		newCtx := context.WithValue(ctx, userIdContextKey, userClaims.UserID)
 		newCtx = context.WithValue(newCtx, usernameContextKey, userClaims.Username)
 
 		return handler(newCtx, req)

@@ -120,7 +120,7 @@ func TestAuthInterceptorFabric_GetInterceptor(t *testing.T) {
 			} else {
 				assert.NoError(t, err)
 
-				resUser, ok := resultCtx.Value(userIDContextKey).(int)
+				resUser, ok := resultCtx.Value(userIdContextKey).(int)
 				require.True(t, ok)
 				resUsername, ok := resultCtx.Value(usernameContextKey).(string)
 				require.True(t, ok)

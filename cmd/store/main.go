@@ -25,7 +25,7 @@ func main() {
 		Password:   "password",
 		Host:       "localhost",
 		Port:       "5432",
-		DBName:     "url_shortener_db",
+		DBName:     "merch_store_db",
 		SSlEnabled: false,
 	}
 
