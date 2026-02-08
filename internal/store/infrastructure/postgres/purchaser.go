@@ -11,12 +11,6 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-type goodInfo struct {
-	id    int
-	name  string
-	price int
-}
-
 type PurchaseHandler struct {
 	queryTxBeginner database.QueryTxBeginner
 	logger          logging.Logger
@@ -30,7 +24,7 @@ func NewPurchaseHandler(queryTxBeginner database.QueryTxBeginner, logger logging
 }
 
 func (ph *PurchaseHandler) HandlePurchase(ctx context.Context, userId int, goodName string) error {
-	good, err := tryFindGoodInfo(ctx, ph.queryTxBeginner, goodName)
+	good, err := GetGoodInfo(ctx, ph.queryTxBeginner, goodName)
 	if err != nil {
 		return err
 	}
@@ -49,16 +43,16 @@ func (ph *PurchaseHandler) HandlePurchase(ctx context.Context, userId int, goodN
 		}
 	}()
 
-	balance, err := lockUserBalance(ctx, tx, userId)
+	balance, err := GetAndLockUserBalance(ctx, tx, userId)
 	if err != nil {
 		return err
 	}
 
-	if balance < good.price {
+	if balance < good.Price {
 		return &domain.InsufficientBalanceError{Msg: "insufficient balance"}
 	}
 
-	err = processPurchase(ctx, tx, userId, good)
+	err = ProcessPurchase(ctx, tx, userId, good)
 	if err != nil {
 		return err
 	}
@@ -71,15 +65,15 @@ func (ph *PurchaseHandler) HandlePurchase(ctx context.Context, userId int, goodN
 	return nil
 }
 
-func processPurchase(ctx context.Context, executor database.Executor, userId int, good goodInfo) error {
+func ProcessPurchase(ctx context.Context, executor database.Executor, userId int, good domain.GoodInfo) error {
 	updateBalanceSQL := `UPDATE balances SET balance = balance - $1 WHERE user_id = $2`
-	_, err := executor.Exec(ctx, updateBalanceSQL, good.price, userId)
+	_, err := executor.Exec(ctx, updateBalanceSQL, good.Price, userId)
 	if err != nil {
 		return fmt.Errorf("failed to update user balance: %w", err)
 	}
 
 	insertPurchaseSQL := `INSERT INTO purchases (user_id, good_id) VALUES ($1, $2)`
-	_, err = executor.Exec(ctx, insertPurchaseSQL, userId, good.id)
+	_, err = executor.Exec(ctx, insertPurchaseSQL, userId, good.Id)
 	if err != nil {
 		return fmt.Errorf("failed to insert purchase record: %w", err)
 	}
@@ -87,7 +81,7 @@ func processPurchase(ctx context.Context, executor database.Executor, userId int
 	return nil
 }
 
-func lockUserBalance(ctx context.Context, querier database.Querier, userId int) (int, error) {
+func GetAndLockUserBalance(ctx context.Context, querier database.Querier, userId int) (int, error) {
 	lockUserSQL := `SELECT balance FROM balances WHERE user_id = $1 FOR UPDATE`
 
 	var balance int
@@ -104,18 +98,18 @@ func lockUserBalance(ctx context.Context, querier database.Querier, userId int) 
 	return balance, nil
 }
 
-func tryFindGoodInfo(ctx context.Context, querier database.Querier, name string) (goodInfo, error) {
+func GetGoodInfo(ctx context.Context, querier database.Querier, name string) (domain.GoodInfo, error) {
 	findGoodSQL := `SELECT id, name, price FROM goods WHERE name = $1`
 
-	var good goodInfo
-	err := querier.QueryRow(ctx, findGoodSQL, name).Scan(&good.id, &good.name, &good.price)
+	var good domain.GoodInfo
+	err := querier.QueryRow(ctx, findGoodSQL, name).Scan(&good.Id, &good.Name, &good.Price)
 
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return goodInfo{}, &domain.GoodNotFoundError{Msg: fmt.Sprintf("good %s not found", name)}
+			return domain.GoodInfo{}, &domain.GoodNotFoundError{Msg: fmt.Sprintf("good %s not found", name)}
 		}
 
-		return goodInfo{}, fmt.Errorf("failed to find good: %w", err)
+		return domain.GoodInfo{}, fmt.Errorf("failed to find good: %w", err)
 	}
 
 	return good, nil

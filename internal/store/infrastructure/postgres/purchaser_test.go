@@ -32,7 +32,7 @@ func TestPurchaseHandler_HandlePurchase(t *testing.T) {
 			goodName: "cup",
 			prepareFn: func(t *testing.T, mock pgxmock.PgxConnIface) {
 				t.Helper()
-				// tryFindGoodInfo
+				// GetGoodInfo
 				goodRows := pgxmock.NewRows([]string{"id", "name", "price"}).
 					AddRow(10, "cup", 20)
 				mock.ExpectQuery("SELECT").
@@ -40,13 +40,13 @@ func TestPurchaseHandler_HandlePurchase(t *testing.T) {
 					WillReturnRows(goodRows)
 				// BeginTx
 				mock.ExpectBeginTx(pgx.TxOptions{IsoLevel: pgx.ReadCommitted})
-				// lockUserBalance
+				// GetAndLockUserBalance
 				balanceRows := pgxmock.NewRows([]string{"balance"}).
 					AddRow(100)
 				mock.ExpectQuery("SELECT").
 					WithArgs(1).
 					WillReturnRows(balanceRows)
-				// processPurchase
+				// ProcessPurchase
 				mock.ExpectExec("UPDATE").
 					WithArgs(20, 1).
 					WillReturnResult(pgxmock.NewResult("UPDATE", 1))
@@ -66,7 +66,7 @@ func TestPurchaseHandler_HandlePurchase(t *testing.T) {
 			goodName: "cup",
 			prepareFn: func(t *testing.T, mock pgxmock.PgxConnIface) {
 				t.Helper()
-				// tryFindGoodInfo
+				// GetGoodInfo
 				goodRows := pgxmock.NewRows([]string{"id", "name", "price"}).
 					AddRow(10, "cup", 20)
 				mock.ExpectQuery("SELECT").
@@ -83,7 +83,7 @@ func TestPurchaseHandler_HandlePurchase(t *testing.T) {
 			goodName: "cup",
 			prepareFn: func(t *testing.T, mock pgxmock.PgxConnIface) {
 				t.Helper()
-				// tryFindGoodInfo
+				// GetGoodInfo
 				goodRows := pgxmock.NewRows([]string{"id", "name", "price"}).
 					AddRow(10, "cup", 20)
 				mock.ExpectQuery("SELECT").
@@ -91,7 +91,7 @@ func TestPurchaseHandler_HandlePurchase(t *testing.T) {
 					WillReturnRows(goodRows)
 				// BeginTx
 				mock.ExpectBeginTx(pgx.TxOptions{IsoLevel: pgx.ReadCommitted})
-				// lockUserBalance - balance less than price
+				// GetAndLockUserBalance - balance less than price
 				balanceRows := pgxmock.NewRows([]string{"balance"}).
 					AddRow(10)
 				mock.ExpectQuery("SELECT").
@@ -108,7 +108,7 @@ func TestPurchaseHandler_HandlePurchase(t *testing.T) {
 			goodName: "cup",
 			prepareFn: func(t *testing.T, mock pgxmock.PgxConnIface) {
 				t.Helper()
-				// tryFindGoodInfo
+				// GetGoodInfo
 				goodRows := pgxmock.NewRows([]string{"id", "name", "price"}).
 					AddRow(10, "cup", 20)
 				mock.ExpectQuery("SELECT").
@@ -116,13 +116,13 @@ func TestPurchaseHandler_HandlePurchase(t *testing.T) {
 					WillReturnRows(goodRows)
 				// BeginTx
 				mock.ExpectBeginTx(pgx.TxOptions{IsoLevel: pgx.ReadCommitted})
-				// lockUserBalance
+				// GetAndLockUserBalance
 				balanceRows := pgxmock.NewRows([]string{"balance"}).
 					AddRow(100)
 				mock.ExpectQuery("SELECT").
 					WithArgs(1).
 					WillReturnRows(balanceRows)
-				// processPurchase
+				// ProcessPurchase
 				mock.ExpectExec("UPDATE").
 					WithArgs(20, 1).
 					WillReturnResult(pgxmock.NewResult("UPDATE", 1))
@@ -171,7 +171,7 @@ func TestProcessPurchase(t *testing.T) {
 	type testCase struct {
 		name   string
 		userId int
-		good   goodInfo
+		good   GoodInfo
 
 		expectedErr error
 
@@ -182,7 +182,7 @@ func TestProcessPurchase(t *testing.T) {
 		{
 			name:   "successful purchase",
 			userId: 1,
-			good:   goodInfo{id: 10, name: "cup", price: 20},
+			good:   GoodInfo{id: 10, name: "cup", price: 20},
 			prepareFn: func(t *testing.T, mock pgxmock.PgxConnIface) {
 				t.Helper()
 				mock.ExpectExec("UPDATE").
@@ -197,7 +197,7 @@ func TestProcessPurchase(t *testing.T) {
 		{
 			name:   "failed to update balance",
 			userId: 1,
-			good:   goodInfo{id: 10, name: "cup", price: 20},
+			good:   GoodInfo{id: 10, name: "cup", price: 20},
 			prepareFn: func(t *testing.T, mock pgxmock.PgxConnIface) {
 				t.Helper()
 				mock.ExpectExec("UPDATE").
@@ -209,7 +209,7 @@ func TestProcessPurchase(t *testing.T) {
 		{
 			name:   "failed to insert purchase",
 			userId: 1,
-			good:   goodInfo{id: 10, name: "cup", price: 20},
+			good:   GoodInfo{id: 10, name: "cup", price: 20},
 			prepareFn: func(t *testing.T, mock pgxmock.PgxConnIface) {
 				t.Helper()
 				mock.ExpectExec("UPDATE").
@@ -234,7 +234,7 @@ func TestProcessPurchase(t *testing.T) {
 
 			tt.prepareFn(t, mock)
 
-			err = processPurchase(t.Context(), mock, tt.userId, tt.good)
+			err = ProcessPurchase(t.Context(), mock, tt.userId, tt.good)
 
 			if tt.expectedErr != nil {
 				assert.ErrorIs(t, err, tt.expectedErr)
@@ -310,7 +310,7 @@ func TestLockUserBalance(t *testing.T) {
 
 			tt.prepareFn(t, mock)
 
-			res, err := lockUserBalance(t.Context(), mock, tt.userId)
+			res, err := GetAndLockUserBalance(t.Context(), mock, tt.userId)
 
 			if tt.expectedErr != nil {
 				assert.ErrorIs(t, err, tt.expectedErr)
@@ -329,7 +329,7 @@ func TestTryFindGoodInfo(t *testing.T) {
 		name     string
 		goodName string
 
-		expectedRes goodInfo
+		expectedRes GoodInfo
 		expectedErr error
 
 		prepareFn func(t *testing.T, mock pgxmock.PgxConnIface)
@@ -347,7 +347,7 @@ func TestTryFindGoodInfo(t *testing.T) {
 					WithArgs("cup").
 					WillReturnRows(rows)
 			},
-			expectedRes: goodInfo{id: 10, name: "cup", price: 20},
+			expectedRes: GoodInfo{id: 10, name: "cup", price: 20},
 			expectedErr: nil,
 		},
 		{
@@ -359,7 +359,7 @@ func TestTryFindGoodInfo(t *testing.T) {
 					WithArgs("nonexistent").
 					WillReturnError(pgx.ErrNoRows)
 			},
-			expectedRes: goodInfo{},
+			expectedRes: GoodInfo{},
 			expectedErr: &domain.GoodNotFoundError{},
 		},
 		{
@@ -371,7 +371,7 @@ func TestTryFindGoodInfo(t *testing.T) {
 					WithArgs("cup").
 					WillReturnError(assert.AnError)
 			},
-			expectedRes: goodInfo{},
+			expectedRes: GoodInfo{},
 			expectedErr: assert.AnError,
 		},
 	}
@@ -387,7 +387,7 @@ func TestTryFindGoodInfo(t *testing.T) {
 
 			tt.prepareFn(t, mock)
 
-			res, err := tryFindGoodInfo(t.Context(), mock, tt.goodName)
+			res, err := GetGoodInfo(t.Context(), mock, tt.goodName)
 
 			if tt.expectedErr != nil {
 				assert.ErrorIs(t, err, tt.expectedErr)
