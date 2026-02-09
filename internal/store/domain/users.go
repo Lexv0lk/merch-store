@@ -1,6 +1,14 @@
 package domain
 
-import "context"
+import (
+	"context"
+
+	"github.com/Lexv0lk/merch-store/internal/pkg/database"
+)
+
+type UserBalanceLocker interface {
+	LockAndGetUserBalance(ctx context.Context, querier database.Querier, userId int) (int, error)
+}
 
 type UserInfoRepository interface {
 	FetchUsername(ctx context.Context, userId int) (string, error)

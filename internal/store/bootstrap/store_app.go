@@ -6,6 +6,7 @@ import (
 	"net"
 
 	merchapi "github.com/Lexv0lk/merch-store/gen/merch/v1"
+	"github.com/Lexv0lk/merch-store/internal/pkg/database"
 	"github.com/Lexv0lk/merch-store/internal/pkg/jwt"
 	"github.com/Lexv0lk/merch-store/internal/pkg/logging"
 	"github.com/Lexv0lk/merch-store/internal/store/application"
@@ -45,8 +46,11 @@ func (a *StoreApp) Run(ctx context.Context, grpcLis net.Listener) error {
 
 	a.dbpool = dbpool
 
-	purchaseHandler := postgres.NewPurchaseHandler(dbpool, logger)
-	purchaseCase := application.NewPurchaseCase(purchaseHandler)
+	purchaseHandler := postgres.NewPurchaseHandler()
+	goodsRepository := postgres.NewGoodsRepository(dbpool)
+	balanceLocker := postgres.NewBalanceLocker()
+	txManager := database.NewDelegateTxManager(dbpool)
+	purchaseCase := application.NewPurchaseCase(goodsRepository, balanceLocker, purchaseHandler, txManager)
 
 	coinsTransferer := postgres.NewCoinsTransferer(dbpool, logger)
 	sendCoinsCase := application.NewSendCoinsCase(coinsTransferer)

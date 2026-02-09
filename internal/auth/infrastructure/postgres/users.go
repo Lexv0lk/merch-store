@@ -11,11 +11,11 @@ import (
 )
 
 type UsersRepository struct {
-	txBeginner database.TxQuerier
+	txBeginner database.QueryTxBeginner
 	logger     logging.Logger
 }
 
-func NewUsersRepository(txBeginner database.TxQuerier, logger logging.Logger) *UsersRepository {
+func NewUsersRepository(txBeginner database.QueryTxBeginner, logger logging.Logger) *UsersRepository {
 	return &UsersRepository{
 		txBeginner: txBeginner,
 		logger:     logger,

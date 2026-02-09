@@ -1,20 +1,29 @@
-package postgres
+package database
 
 import (
 	"context"
 	"fmt"
 
-	"github.com/Lexv0lk/merch-store/internal/pkg/database"
 	"github.com/jackc/pgx/v5"
 )
 
-type TxFunc func(ctx context.Context, executor database.QueryExecuter) error
-
-type TxManager struct {
-	txBeginner database.TxBeginner
+type TxManager interface {
+	WithinTransaction(ctx context.Context, txFn TxFunc) error
 }
 
-func (tm *TxManager) WithinTransaction(ctx context.Context, txFn TxFunc) error {
+type TxFunc func(ctx context.Context, executor QueryExecuter) error
+
+type DelegateTxManager struct {
+	txBeginner TxBeginner
+}
+
+func NewDelegateTxManager(txBeginner TxBeginner) *DelegateTxManager {
+	return &DelegateTxManager{
+		txBeginner: txBeginner,
+	}
+}
+
+func (tm *DelegateTxManager) WithinTransaction(ctx context.Context, txFn TxFunc) error {
 	tx, err := tm.txBeginner.BeginTx(ctx, pgx.TxOptions{
 		IsoLevel: pgx.ReadCommitted,
 	})

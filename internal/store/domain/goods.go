@@ -1,6 +1,8 @@
 package domain
 
-import "context"
+import (
+	"context"
+)
 
 type GoodsRepository interface {
 	GetGoodInfo(ctx context.Context, goodName string) (GoodInfo, error)
