@@ -26,7 +26,7 @@ func main() {
 		Host:       "localhost",
 		Port:       "5432",
 		DBName:     "merch_store_db",
-		SSlEnabled: false,
+		SSLEnabled: false,
 	}
 
 	env.TrySetFromEnv(env.EnvGrpcStorePort, &grpcPort)

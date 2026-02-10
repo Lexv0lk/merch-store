@@ -6,8 +6,8 @@ import (
 	"github.com/Lexv0lk/merch-store/internal/pkg/database"
 )
 
-type CoinsTransferer interface {
-	TransferCoins(ctx context.Context, fromUsername string, toUsername string, amount uint32) error
+type TransactionProceeder interface {
+	ProceedTransaction(ctx context.Context, executor database.Executor, amount uint32, fromUser, toUser *UserInfo) error
 }
 
 type Purchaser interface {

@@ -13,6 +13,44 @@ import (
 	gomock "github.com/golang/mock/gomock"
 )
 
+// MockUserFinder is a mock of UserFinder interface.
+type MockUserFinder struct {
+	ctrl     *gomock.Controller
+	recorder *MockUserFinderMockRecorder
+}
+
+// MockUserFinderMockRecorder is the mock recorder for MockUserFinder.
+type MockUserFinderMockRecorder struct {
+	mock *MockUserFinder
+}
+
+// NewMockUserFinder creates a new mock instance.
+func NewMockUserFinder(ctrl *gomock.Controller) *MockUserFinder {
+	mock := &MockUserFinder{ctrl: ctrl}
+	mock.recorder = &MockUserFinderMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockUserFinder) EXPECT() *MockUserFinderMockRecorder {
+	return m.recorder
+}
+
+// GetTargetUsers mocks base method.
+func (m *MockUserFinder) GetTargetUsers(ctx context.Context, querier database.Querier, fromUsername, toUsername string) ([]domain.UserInfo, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetTargetUsers", ctx, querier, fromUsername, toUsername)
+	ret0, _ := ret[0].([]domain.UserInfo)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetTargetUsers indicates an expected call of GetTargetUsers.
+func (mr *MockUserFinderMockRecorder) GetTargetUsers(ctx, querier, fromUsername, toUsername interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTargetUsers", reflect.TypeOf((*MockUserFinder)(nil).GetTargetUsers), ctx, querier, fromUsername, toUsername)
+}
+
 // MockUserBalanceLocker is a mock of UserBalanceLocker interface.
 type MockUserBalanceLocker struct {
 	ctrl     *gomock.Controller

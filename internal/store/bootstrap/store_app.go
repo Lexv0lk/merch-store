@@ -37,7 +37,7 @@ func NewStoreApp(cfg StoreConfig, logger logging.Logger) *StoreApp {
 
 func (a *StoreApp) Run(ctx context.Context, grpcLis net.Listener) error {
 	logger := a.logger
-	dbURL := a.cfg.DbSettings.GetUrl()
+	dbURL := a.cfg.DbSettings.GetURL()
 
 	dbpool, err := pgxpool.New(ctx, dbURL)
 	if err != nil {
@@ -45,15 +45,16 @@ func (a *StoreApp) Run(ctx context.Context, grpcLis net.Listener) error {
 	}
 
 	a.dbpool = dbpool
+	txManager := database.NewDelegateTxManager(dbpool)
 
 	purchaseHandler := postgres.NewPurchaseHandler()
 	goodsRepository := postgres.NewGoodsRepository(dbpool)
 	balanceLocker := postgres.NewBalanceLocker()
-	txManager := database.NewDelegateTxManager(dbpool)
 	purchaseCase := application.NewPurchaseCase(goodsRepository, balanceLocker, purchaseHandler, txManager)
 
-	coinsTransferer := postgres.NewCoinsTransferer(dbpool, logger)
-	sendCoinsCase := application.NewSendCoinsCase(coinsTransferer)
+	transactionProceeder := postgres.NewTransactionProceeder()
+	userFinder := postgres.NewUserFinder()
+	sendCoinsCase := application.NewSendCoinsCase(txManager, userFinder, transactionProceeder)
 
 	userInfoRepository := postgres.NewUserInfoRepository(dbpool, logger)
 	userInfoCase := application.NewUserInfoCase(userInfoRepository, logger)

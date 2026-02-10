@@ -1,10 +1,12 @@
-//go:generate mockgen
 package application
 
 import (
+	"context"
 	"testing"
 
+	dbmocks "github.com/Lexv0lk/merch-store/gen/mocks/database"
 	storemocks "github.com/Lexv0lk/merch-store/gen/mocks/store"
+	"github.com/Lexv0lk/merch-store/internal/pkg/database"
 	"github.com/Lexv0lk/merch-store/internal/store/domain"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
@@ -13,15 +15,25 @@ import (
 func TestSendCoinsCase_SendCoins(t *testing.T) {
 	t.Parallel()
 
+	type deps struct {
+		txManager            *dbmocks.MockTxManager
+		userFinder           *storemocks.MockUserFinder
+		transactionProceeder *storemocks.MockTransactionProceeder
+	}
+
 	type testCase struct {
 		name         string
 		fromUsername string
 		toUsername   string
 		amount       uint32
 
-		prepareFn func(t *testing.T, ctrl *gomock.Controller) domain.CoinsTransferer
+		prepareFn func(t *testing.T, d *deps)
 
 		expectedErr error
+	}
+
+	executeTxFn := func(ctx context.Context, txFn database.TxFunc) error {
+		return txFn(ctx, nil)
 	}
 
 	tests := []testCase{
@@ -30,10 +42,38 @@ func TestSendCoinsCase_SendCoins(t *testing.T) {
 			fromUsername: "sender",
 			toUsername:   "receiver",
 			amount:       100,
-			prepareFn: func(t *testing.T, ctrl *gomock.Controller) domain.CoinsTransferer {
-				coinsTransferer := storemocks.NewMockCoinsTransferer(ctrl)
-				coinsTransferer.EXPECT().TransferCoins(gomock.Any(), "sender", "receiver", uint32(100)).Return(nil)
-				return coinsTransferer
+			prepareFn: func(t *testing.T, d *deps) {
+				d.txManager.EXPECT().WithinTransaction(gomock.Any(), gomock.Any()).
+					DoAndReturn(executeTxFn)
+				d.userFinder.EXPECT().GetTargetUsers(gomock.Any(), nil, "sender", "receiver").
+					Return([]domain.UserInfo{
+						{Id: 1, Username: "sender", Balance: 500},
+						{Id: 2, Username: "receiver", Balance: 200},
+					}, nil)
+				d.transactionProceeder.EXPECT().ProceedTransaction(gomock.Any(), nil, uint32(100),
+					&domain.UserInfo{Id: 1, Username: "sender", Balance: 500},
+					&domain.UserInfo{Id: 2, Username: "receiver", Balance: 200}).
+					Return(nil)
+			},
+			expectedErr: nil,
+		},
+		{
+			name:         "successful transfer with reversed user order",
+			fromUsername: "sender",
+			toUsername:   "receiver",
+			amount:       100,
+			prepareFn: func(t *testing.T, d *deps) {
+				d.txManager.EXPECT().WithinTransaction(gomock.Any(), gomock.Any()).
+					DoAndReturn(executeTxFn)
+				d.userFinder.EXPECT().GetTargetUsers(gomock.Any(), nil, "sender", "receiver").
+					Return([]domain.UserInfo{
+						{Id: 2, Username: "receiver", Balance: 200},
+						{Id: 1, Username: "sender", Balance: 500},
+					}, nil)
+				d.transactionProceeder.EXPECT().ProceedTransaction(gomock.Any(), nil, uint32(100),
+					&domain.UserInfo{Id: 1, Username: "sender", Balance: 500},
+					&domain.UserInfo{Id: 2, Username: "receiver", Balance: 200}).
+					Return(nil)
 			},
 			expectedErr: nil,
 		},
@@ -42,22 +82,22 @@ func TestSendCoinsCase_SendCoins(t *testing.T) {
 			fromUsername: "sameuser",
 			toUsername:   "sameuser",
 			amount:       100,
-			prepareFn: func(t *testing.T, ctrl *gomock.Controller) domain.CoinsTransferer {
-				coinsTransferer := storemocks.NewMockCoinsTransferer(ctrl)
-				coinsTransferer.EXPECT().TransferCoins(gomock.Any(), "sameuser", "sameuser", uint32(100)).Return(&domain.InvalidArgumentsError{Msg: "fromUsername must differ from toUsername"})
-				return coinsTransferer
-			},
-			expectedErr: &domain.InvalidArgumentsError{},
+			prepareFn:    func(t *testing.T, d *deps) {},
+			expectedErr:  &domain.InvalidArgumentsError{},
 		},
 		{
 			name:         "insufficient balance",
 			fromUsername: "pooruser",
 			toUsername:   "receiver",
-			amount:       1000000,
-			prepareFn: func(t *testing.T, ctrl *gomock.Controller) domain.CoinsTransferer {
-				coinsTransferer := storemocks.NewMockCoinsTransferer(ctrl)
-				coinsTransferer.EXPECT().TransferCoins(gomock.Any(), "pooruser", "receiver", uint32(1000000)).Return(&domain.InsufficientBalanceError{Msg: "insufficient balance"})
-				return coinsTransferer
+			amount:       1000,
+			prepareFn: func(t *testing.T, d *deps) {
+				d.txManager.EXPECT().WithinTransaction(gomock.Any(), gomock.Any()).
+					DoAndReturn(executeTxFn)
+				d.userFinder.EXPECT().GetTargetUsers(gomock.Any(), nil, "pooruser", "receiver").
+					Return([]domain.UserInfo{
+						{Id: 1, Username: "pooruser", Balance: 500},
+						{Id: 2, Username: "receiver", Balance: 200},
+					}, nil)
 			},
 			expectedErr: &domain.InsufficientBalanceError{},
 		},
@@ -66,22 +106,44 @@ func TestSendCoinsCase_SendCoins(t *testing.T) {
 			fromUsername: "sender",
 			toUsername:   "nonexistent",
 			amount:       100,
-			prepareFn: func(t *testing.T, ctrl *gomock.Controller) domain.CoinsTransferer {
-				coinsTransferer := storemocks.NewMockCoinsTransferer(ctrl)
-				coinsTransferer.EXPECT().TransferCoins(gomock.Any(), "sender", "nonexistent", uint32(100)).Return(&domain.UserNotFoundError{Msg: "user not found"})
-				return coinsTransferer
+			prepareFn: func(t *testing.T, d *deps) {
+				d.txManager.EXPECT().WithinTransaction(gomock.Any(), gomock.Any()).
+					DoAndReturn(executeTxFn)
+				d.userFinder.EXPECT().GetTargetUsers(gomock.Any(), nil, "sender", "nonexistent").
+					Return(nil, &domain.UserNotFoundError{Msg: "user not found"})
 			},
 			expectedErr: &domain.UserNotFoundError{},
+		},
+		{
+			name:         "proceed transaction error",
+			fromUsername: "sender",
+			toUsername:   "receiver",
+			amount:       100,
+			prepareFn: func(t *testing.T, d *deps) {
+				d.txManager.EXPECT().WithinTransaction(gomock.Any(), gomock.Any()).
+					DoAndReturn(executeTxFn)
+				d.userFinder.EXPECT().GetTargetUsers(gomock.Any(), nil, "sender", "receiver").
+					Return([]domain.UserInfo{
+						{Id: 1, Username: "sender", Balance: 500},
+						{Id: 2, Username: "receiver", Balance: 200},
+					}, nil)
+				d.transactionProceeder.EXPECT().ProceedTransaction(gomock.Any(), nil, uint32(100),
+					&domain.UserInfo{Id: 1, Username: "sender", Balance: 500},
+					&domain.UserInfo{Id: 2, Username: "receiver", Balance: 200}).
+					Return(assert.AnError)
+			},
+			expectedErr: assert.AnError,
 		},
 		{
 			name:         "internal error",
 			fromUsername: "sender",
 			toUsername:   "receiver",
 			amount:       100,
-			prepareFn: func(t *testing.T, ctrl *gomock.Controller) domain.CoinsTransferer {
-				coinsTransferer := storemocks.NewMockCoinsTransferer(ctrl)
-				coinsTransferer.EXPECT().TransferCoins(gomock.Any(), "sender", "receiver", uint32(100)).Return(assert.AnError)
-				return coinsTransferer
+			prepareFn: func(t *testing.T, d *deps) {
+				d.txManager.EXPECT().WithinTransaction(gomock.Any(), gomock.Any()).
+					DoAndReturn(executeTxFn)
+				d.userFinder.EXPECT().GetTargetUsers(gomock.Any(), nil, "sender", "receiver").
+					Return(nil, assert.AnError)
 			},
 			expectedErr: assert.AnError,
 		},
@@ -94,9 +156,15 @@ func TestSendCoinsCase_SendCoins(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			coinsTransferer := tt.prepareFn(t, ctrl)
-			sendCoinsCase := NewSendCoinsCase(coinsTransferer)
+			d := &deps{
+				txManager:            dbmocks.NewMockTxManager(ctrl),
+				userFinder:           storemocks.NewMockUserFinder(ctrl),
+				transactionProceeder: storemocks.NewMockTransactionProceeder(ctrl),
+			}
 
+			tt.prepareFn(t, d)
+
+			sendCoinsCase := NewSendCoinsCase(d.txManager, d.userFinder, d.transactionProceeder)
 			err := sendCoinsCase.SendCoins(t.Context(), tt.fromUsername, tt.toUsername, tt.amount)
 
 			if tt.expectedErr != nil {

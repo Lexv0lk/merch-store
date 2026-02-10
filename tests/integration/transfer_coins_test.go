@@ -142,7 +142,7 @@ func getDefaultDBSettings() database.PostgresSettings {
 		User:       "admin",
 		Password:   "password",
 		DBName:     "merch_store_db",
-		SSlEnabled: false,
+		SSLEnabled: false,
 	}
 }
 

@@ -13,41 +13,41 @@ import (
 	gomock "github.com/golang/mock/gomock"
 )
 
-// MockCoinsTransferer is a mock of CoinsTransferer interface.
-type MockCoinsTransferer struct {
+// MockTransactionProceeder is a mock of TransactionProceeder interface.
+type MockTransactionProceeder struct {
 	ctrl     *gomock.Controller
-	recorder *MockCoinsTransfererMockRecorder
+	recorder *MockTransactionProceederMockRecorder
 }
 
-// MockCoinsTransfererMockRecorder is the mock recorder for MockCoinsTransferer.
-type MockCoinsTransfererMockRecorder struct {
-	mock *MockCoinsTransferer
+// MockTransactionProceederMockRecorder is the mock recorder for MockTransactionProceeder.
+type MockTransactionProceederMockRecorder struct {
+	mock *MockTransactionProceeder
 }
 
-// NewMockCoinsTransferer creates a new mock instance.
-func NewMockCoinsTransferer(ctrl *gomock.Controller) *MockCoinsTransferer {
-	mock := &MockCoinsTransferer{ctrl: ctrl}
-	mock.recorder = &MockCoinsTransfererMockRecorder{mock}
+// NewMockTransactionProceeder creates a new mock instance.
+func NewMockTransactionProceeder(ctrl *gomock.Controller) *MockTransactionProceeder {
+	mock := &MockTransactionProceeder{ctrl: ctrl}
+	mock.recorder = &MockTransactionProceederMockRecorder{mock}
 	return mock
 }
 
 // EXPECT returns an object that allows the caller to indicate expected use.
-func (m *MockCoinsTransferer) EXPECT() *MockCoinsTransfererMockRecorder {
+func (m *MockTransactionProceeder) EXPECT() *MockTransactionProceederMockRecorder {
 	return m.recorder
 }
 
-// TransferCoins mocks base method.
-func (m *MockCoinsTransferer) TransferCoins(ctx context.Context, fromUsername, toUsername string, amount uint32) error {
+// ProceedTransaction mocks base method.
+func (m *MockTransactionProceeder) ProceedTransaction(ctx context.Context, executor database.Executor, amount uint32, fromUser, toUser *domain.UserInfo) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "TransferCoins", ctx, fromUsername, toUsername, amount)
+	ret := m.ctrl.Call(m, "ProceedTransaction", ctx, executor, amount, fromUser, toUser)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// TransferCoins indicates an expected call of TransferCoins.
-func (mr *MockCoinsTransfererMockRecorder) TransferCoins(ctx, fromUsername, toUsername, amount interface{}) *gomock.Call {
+// ProceedTransaction indicates an expected call of ProceedTransaction.
+func (mr *MockTransactionProceederMockRecorder) ProceedTransaction(ctx, executor, amount, fromUser, toUser interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TransferCoins", reflect.TypeOf((*MockCoinsTransferer)(nil).TransferCoins), ctx, fromUsername, toUsername, amount)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ProceedTransaction", reflect.TypeOf((*MockTransactionProceeder)(nil).ProceedTransaction), ctx, executor, amount, fromUser, toUser)
 }
 
 // MockPurchaser is a mock of Purchaser interface.

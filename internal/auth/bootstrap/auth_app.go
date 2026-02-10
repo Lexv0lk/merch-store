@@ -38,7 +38,7 @@ func NewAuthApp(cfg AuthConfig, logger logging.Logger) *AuthApp {
 func (a *AuthApp) Run(ctx context.Context, grpcLis net.Listener) error {
 	logger := a.logger
 	databaseSettings := a.cfg.DbSettings
-	dbURL := databaseSettings.GetUrl()
+	dbURL := databaseSettings.GetURL()
 
 	dbpool, err := pgxpool.New(ctx, dbURL)
 	if err != nil {

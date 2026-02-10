@@ -59,7 +59,7 @@ func TestPurchaseScenario(t *testing.T) {
 				User:       "admin",
 				Password:   "password",
 				DBName:     "merch_store_db",
-				SSlEnabled: false,
+				SSLEnabled: false,
 			}
 
 			dbHost, err := pg.Host(t.Context())

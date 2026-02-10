@@ -24,7 +24,7 @@ func TestPostgresSettings_GetUrl(t *testing.T) {
 				Host:       "localhost",
 				Port:       "5432",
 				DBName:     "testdb",
-				SSlEnabled: true,
+				SSLEnabled: true,
 			},
 			expectedStr: "postgres://testuser:testpass@localhost:5432/testdb",
 		},
@@ -36,7 +36,7 @@ func TestPostgresSettings_GetUrl(t *testing.T) {
 				Host:       "localhost",
 				Port:       "5432",
 				DBName:     "testdb",
-				SSlEnabled: false,
+				SSLEnabled: false,
 			},
 			expectedStr: "postgres://testuser:testpass@localhost:5432/testdb?sslmode=disable",
 		},
@@ -47,7 +47,7 @@ func TestPostgresSettings_GetUrl(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			result := tt.settings.GetUrl()
+			result := tt.settings.GetURL()
 			assert.Equal(t, tt.expectedStr, result)
 		})
 	}

@@ -6,6 +6,10 @@ import (
 	"github.com/Lexv0lk/merch-store/internal/pkg/database"
 )
 
+type UserFinder interface {
+	GetTargetUsers(ctx context.Context, querier database.Querier, fromUsername, toUsername string) ([]UserInfo, error)
+}
+
 type UserBalanceLocker interface {
 	LockAndGetUserBalance(ctx context.Context, querier database.Querier, userId int) (int, error)
 }
@@ -15,6 +19,12 @@ type UserInfoRepository interface {
 	FetchUserBalance(ctx context.Context, userId int) (uint32, error)
 	FetchUserPurchases(ctx context.Context, userId int) (map[Good]uint32, error)
 	FetchUserCoinTransfers(ctx context.Context, userId int) (CoinTransferHistory, error)
+}
+
+type UserInfo struct {
+	Id       int
+	Username string
+	Balance  uint32
 }
 
 type MainUserInfo struct {

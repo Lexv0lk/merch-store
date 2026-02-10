@@ -40,16 +40,16 @@ type PostgresSettings struct {
 	Host       string
 	Port       string
 	DBName     string
-	SSlEnabled bool
+	SSLEnabled bool
 }
 
-// GetUrl constructs and returns a PostgreSQL connection URL string.
+// GetURL constructs and returns a PostgreSQL connection URL string.
 // The URL format is: postgres://user:password@host:port/dbname
-// If SSlEnabled is false, "?sslmode=disable" is appended to the URL.
+// If SSLEnabled is false, "?sslmode=disable" is appended to the URL.
 // This method does not return any errors; it assumes all fields are properly set.
-func (p *PostgresSettings) GetUrl() string {
+func (p *PostgresSettings) GetURL() string {
 	result := "postgres://" + p.User + ":" + p.Password + "@" + p.Host + ":" + p.Port + "/" + p.DBName
-	if p.SSlEnabled == false {
+	if p.SSLEnabled == false {
 		result += "?sslmode=disable"
 	}
 
