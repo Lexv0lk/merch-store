@@ -8,6 +8,8 @@ import (
 	context "context"
 	reflect "reflect"
 
+	database "github.com/Lexv0lk/merch-store/internal/pkg/database"
+	domain "github.com/Lexv0lk/merch-store/internal/store/domain"
 	gomock "github.com/golang/mock/gomock"
 )
 
@@ -48,39 +50,39 @@ func (mr *MockCoinsTransfererMockRecorder) TransferCoins(ctx, fromUsername, toUs
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TransferCoins", reflect.TypeOf((*MockCoinsTransferer)(nil).TransferCoins), ctx, fromUsername, toUsername, amount)
 }
 
-// MockPurchaseHandler is a mock of PurchaseHandler interface.
-type MockPurchaseHandler struct {
+// MockPurchaser is a mock of Purchaser interface.
+type MockPurchaser struct {
 	ctrl     *gomock.Controller
-	recorder *MockPurchaseHandlerMockRecorder
+	recorder *MockPurchaserMockRecorder
 }
 
-// MockPurchaseHandlerMockRecorder is the mock recorder for MockPurchaseHandler.
-type MockPurchaseHandlerMockRecorder struct {
-	mock *MockPurchaseHandler
+// MockPurchaserMockRecorder is the mock recorder for MockPurchaser.
+type MockPurchaserMockRecorder struct {
+	mock *MockPurchaser
 }
 
-// NewMockPurchaseHandler creates a new mock instance.
-func NewMockPurchaseHandler(ctrl *gomock.Controller) *MockPurchaseHandler {
-	mock := &MockPurchaseHandler{ctrl: ctrl}
-	mock.recorder = &MockPurchaseHandlerMockRecorder{mock}
+// NewMockPurchaser creates a new mock instance.
+func NewMockPurchaser(ctrl *gomock.Controller) *MockPurchaser {
+	mock := &MockPurchaser{ctrl: ctrl}
+	mock.recorder = &MockPurchaserMockRecorder{mock}
 	return mock
 }
 
 // EXPECT returns an object that allows the caller to indicate expected use.
-func (m *MockPurchaseHandler) EXPECT() *MockPurchaseHandlerMockRecorder {
+func (m *MockPurchaser) EXPECT() *MockPurchaserMockRecorder {
 	return m.recorder
 }
 
-// HandlePurchase mocks base method.
-func (m *MockPurchaseHandler) HandlePurchase(ctx context.Context, userId int, goodName string) error {
+// ProcessPurchase mocks base method.
+func (m *MockPurchaser) ProcessPurchase(ctx context.Context, executor database.Executor, userId int, good domain.GoodInfo) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "HandlePurchase", ctx, userId, goodName)
+	ret := m.ctrl.Call(m, "ProcessPurchase", ctx, executor, userId, good)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// HandlePurchase indicates an expected call of HandlePurchase.
-func (mr *MockPurchaseHandlerMockRecorder) HandlePurchase(ctx, userId, goodName interface{}) *gomock.Call {
+// ProcessPurchase indicates an expected call of ProcessPurchase.
+func (mr *MockPurchaserMockRecorder) ProcessPurchase(ctx, executor, userId, good interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HandlePurchase", reflect.TypeOf((*MockPurchaseHandler)(nil).HandlePurchase), ctx, userId, goodName)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ProcessPurchase", reflect.TypeOf((*MockPurchaser)(nil).ProcessPurchase), ctx, executor, userId, good)
 }

@@ -4,19 +4,20 @@ import (
 	"testing"
 
 	"github.com/Lexv0lk/merch-store/internal/store/domain"
+	"github.com/jackc/pgx/v5"
 	"github.com/pashagolub/pgxmock/v4"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestPurchaseHandler_ProcessPurchase(t *testing.T) {
+func TestBalanceLocker_LockAndGetUserBalance(t *testing.T) {
 	t.Parallel()
 
 	type testCase struct {
 		name   string
 		userId int
-		good   domain.GoodInfo
 
+		expectedRes int
 		expectedErr error
 
 		prepareFn func(t *testing.T, mock pgxmock.PgxConnIface)
@@ -24,45 +25,41 @@ func TestPurchaseHandler_ProcessPurchase(t *testing.T) {
 
 	tests := []testCase{
 		{
-			name:   "successful purchase",
+			name:   "successful lock",
 			userId: 1,
-			good:   domain.GoodInfo{Id: 10, Name: "cup", Price: 20},
 			prepareFn: func(t *testing.T, mock pgxmock.PgxConnIface) {
 				t.Helper()
-				mock.ExpectExec("UPDATE").
-					WithArgs(20, 1).
-					WillReturnResult(pgxmock.NewResult("UPDATE", 1))
-				mock.ExpectExec("INSERT").
-					WithArgs(1, 10).
-					WillReturnResult(pgxmock.NewResult("INSERT", 1))
+				rows := pgxmock.NewRows([]string{"balance"}).
+					AddRow(500)
+				mock.ExpectQuery("SELECT").
+					WithArgs(1).
+					WillReturnRows(rows)
 			},
+			expectedRes: 500,
 			expectedErr: nil,
 		},
 		{
-			name:   "failed to update balance",
-			userId: 1,
-			good:   domain.GoodInfo{Id: 10, Name: "cup", Price: 20},
+			name:   "user not found",
+			userId: 999,
 			prepareFn: func(t *testing.T, mock pgxmock.PgxConnIface) {
 				t.Helper()
-				mock.ExpectExec("UPDATE").
-					WithArgs(20, 1).
-					WillReturnError(assert.AnError)
+				mock.ExpectQuery("SELECT").
+					WithArgs(999).
+					WillReturnError(pgx.ErrNoRows)
 			},
-			expectedErr: assert.AnError,
+			expectedRes: 0,
+			expectedErr: &domain.UserNotFoundError{},
 		},
 		{
-			name:   "failed to insert purchase",
+			name:   "database error",
 			userId: 1,
-			good:   domain.GoodInfo{Id: 10, Name: "cup", Price: 20},
 			prepareFn: func(t *testing.T, mock pgxmock.PgxConnIface) {
 				t.Helper()
-				mock.ExpectExec("UPDATE").
-					WithArgs(20, 1).
-					WillReturnResult(pgxmock.NewResult("UPDATE", 1))
-				mock.ExpectExec("INSERT").
-					WithArgs(1, 10).
+				mock.ExpectQuery("SELECT").
+					WithArgs(1).
 					WillReturnError(assert.AnError)
 			},
+			expectedRes: 0,
 			expectedErr: assert.AnError,
 		},
 	}
@@ -78,13 +75,14 @@ func TestPurchaseHandler_ProcessPurchase(t *testing.T) {
 
 			tt.prepareFn(t, mock)
 
-			purchaseHandler := NewPurchaseHandler()
-			err = purchaseHandler.ProcessPurchase(t.Context(), mock, tt.userId, tt.good)
+			balanceLocker := NewBalanceLocker()
+			res, err := balanceLocker.LockAndGetUserBalance(t.Context(), mock, tt.userId)
 
 			if tt.expectedErr != nil {
 				assert.ErrorIs(t, err, tt.expectedErr)
 			} else {
 				assert.NoError(t, err)
+				assert.Equal(t, tt.expectedRes, res)
 			}
 		})
 	}
