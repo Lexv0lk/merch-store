@@ -45,7 +45,7 @@ func (a *Authenticator) Authenticate(ctx context.Context, username, password str
 			return "", err
 		}
 
-		userInfo, err = a.usersRepository.CreateUser(ctx, username, hashedPassword, domain.StartBalance)
+		userInfo, err = a.usersRepository.CreateUser(ctx, username, hashedPassword)
 		if err != nil {
 			return "", err
 		}

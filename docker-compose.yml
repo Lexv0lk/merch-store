@@ -30,9 +30,7 @@
     env_file:
       - .env
     depends_on:
-      postgres:
-        condition: service_healthy
-      migrator:
+      auth-migrator:
         condition: service_completed_successfully
 
   store:
@@ -48,38 +46,68 @@
     env_file:
       - .env
     depends_on:
-      postgres:
-        condition: service_healthy
-      migrator:
+      store-migrator:
         condition: service_completed_successfully
 
-  migrator:
+  auth-migrator:
     image: "gomicro/goose"
     volumes:
-      - ./migrations:/migrations
+      - ./migrations/auth:/migrations
     profiles: ["app", "infra"]
     networks:
       - merch-net
-    command: /bin/goose postgres "postgres://admin:password@postgres:5432/merch_store_db?sslmode=disable" up
+    command: /bin/goose postgres "postgres://auth_admin:auth_password@postgres-auth:5432/merch_auth_db?sslmode=disable" up
     depends_on:
-      postgres:
+      postgres-auth:
         condition: service_healthy
 
-  postgres:
+  store-migrator:
+    image: "gomicro/goose"
+    volumes:
+      - ./migrations/store:/migrations
+    profiles: [ "app", "infra" ]
+    networks:
+      - merch-net
+    command: /bin/goose postgres "postgres://store_admin:store_password@postgres-store:5432/merch_store_db?sslmode=disable" up
+    depends_on:
+      postgres-store:
+        condition: service_healthy
+
+  postgres-auth:
     image: "postgres:16-alpine"
     profiles: ["app", "infra"]
     environment:
-      POSTGRES_USER: admin
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: merch_store_db
+      POSTGRES_USER: auth_admin
+      POSTGRES_PASSWORD: auth_password
+      POSTGRES_DB: merch_auth_db
     ports:
       - "5433:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_auth_data:/var/lib/postgresql/data
     networks:
       - merch-net
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U admin -d merch_store_db"]
+      test: ["CMD-SHELL", "pg_isready -U auth_admin -d merch_auth_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  postgres-store:
+    image: "postgres:16-alpine"
+    profiles: [ "app", "infra" ]
+    environment:
+      POSTGRES_USER: store_admin
+      POSTGRES_PASSWORD: store_password
+      POSTGRES_DB: merch_store_db
+    ports:
+      - "5434:5432"
+    volumes:
+      - postgres_store_data:/var/lib/postgresql/data
+    networks:
+      - merch-net
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U store_admin -d merch_store_db" ]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -90,4 +118,5 @@ networks:
     driver: bridge
 
 volumes:
-  postgres_data:
+  postgres_auth_data:
+  postgres_store_data:

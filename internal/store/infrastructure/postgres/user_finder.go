@@ -16,8 +16,7 @@ func NewUserFinder() *UserFinder {
 
 func (uf *UserFinder) GetTargetUsers(ctx context.Context, querier database.Querier, fromUsername, toUsername string) ([]domain.UserInfo, error) {
 	usersSelectSQL := `SELECT u.id, u.username, b.balance
-FROM users u
-JOIN balances b ON b.user_id = u.id
+FROM balances b
 WHERE u.username = ANY($1)
 ORDER BY u.id
 FOR UPDATE`

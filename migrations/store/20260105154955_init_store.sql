@@ -2,7 +2,7 @@
 -- +goose StatementBegin
 CREATE TABLE balances (
     id SERIAL PRIMARY KEY,
-    user_id INTEGER REFERENCES users(id) UNIQUE,
+    user_id INTEGER NOT NULL UNIQUE,
     balance INTEGER NOT NULL DEFAULT 0
 );
 
@@ -14,14 +14,14 @@ CREATE TABLE goods (
 
 CREATE TABLE transactions (
     id SERIAL PRIMARY KEY,
-    from_user_id INTEGER REFERENCES users(id),
-    to_user_id INTEGER REFERENCES users(id),
+    from_user_id INTEGER REFERENCES balances(user_id),
+    to_user_id INTEGER REFERENCES balances(user_id),
     amount INTEGER NOT NULL
 );
 
 CREATE TABLE purchases (
     id SERIAL PRIMARY KEY,
-    user_id INTEGER REFERENCES users(id),
+    user_id INTEGER REFERENCES balances(user_id),
     good_id INTEGER REFERENCES goods(id)
 );
 -- +goose StatementEnd

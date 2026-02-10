@@ -13,12 +13,12 @@ import (
 	"time"
 
 	authboot "github.com/Lexv0lk/merch-store/internal/auth/bootstrap"
-	auth "github.com/Lexv0lk/merch-store/internal/auth/domain"
 	gatewayboot "github.com/Lexv0lk/merch-store/internal/gateway/bootstrap"
 	gateway "github.com/Lexv0lk/merch-store/internal/gateway/domain"
 	"github.com/Lexv0lk/merch-store/internal/pkg/database"
 	"github.com/Lexv0lk/merch-store/internal/pkg/logging"
 	storeboot "github.com/Lexv0lk/merch-store/internal/store/bootstrap"
+	store "github.com/Lexv0lk/merch-store/internal/store/domain"
 	"github.com/gin-gonic/gin"
 	"github.com/pressly/goose/v3"
 	"github.com/stretchr/testify/assert"
@@ -85,7 +85,7 @@ func TestPurchaseScenario(t *testing.T) {
 
 			// CHECK ACCOUNT INFO
 			expectedInfo := gateway.UserInfo{
-				Balance: auth.StartBalance - cupCost - umbrellaCost,
+				Balance: store.StartBalance - cupCost - umbrellaCost,
 				Inventory: []gateway.InventoryItem{
 					{Name: "cup", Quantity: 1},
 					{Name: "umbrella", Quantity: 1},
@@ -149,7 +149,9 @@ func setupDatabase(t *testing.T) *postgres.PostgresContainer {
 
 	//up migrations
 	goose.SetDialect("postgres")
-	err = goose.Up(db, "../../migrations")
+	err = goose.Up(db, "../../migrations/auth")
+	require.NoError(t, err)
+	err = goose.Up(db, "../../migrations/store")
 	require.NoError(t, err)
 
 	return pg

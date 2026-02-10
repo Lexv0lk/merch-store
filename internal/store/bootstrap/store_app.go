@@ -59,7 +59,15 @@ func (a *StoreApp) Run(ctx context.Context, grpcLis net.Listener) error {
 	userInfoRepository := postgres.NewUserInfoRepository(dbpool, logger)
 	userInfoCase := application.NewUserInfoCase(userInfoRepository, logger)
 
-	server, err := createGRPCServer(purchaseCase, sendCoinsCase, userInfoCase, logger, jwt.NewJWTTokenParser(), a.cfg.JwtSecret)
+	server, err := createGRPCServer(
+		purchaseCase,
+		sendCoinsCase,
+		userInfoCase,
+		logger,
+		jwt.NewJWTTokenParser(),
+		a.cfg.JwtSecret,
+		dbpool,
+	)
 	if err != nil {
 		return fmt.Errorf("failed to create gRPC server: %w", err)
 	}
@@ -104,10 +112,16 @@ func createGRPCServer(
 	logger logging.Logger,
 	tokenParser jwt.TokenParser,
 	secretKey string,
+	dbpool *pgxpool.Pool,
 ) (*grpc.Server, error) {
 	authInterceptorFabric := grpcwrap.NewAuthInterceptorFabric(secretKey, tokenParser, logger)
+
+	balanceEnsurer := postgres.NewBalanceCreator(dbpool)
+	balanceInterceptorFabric := grpcwrap.NewBalanceInterceptorFabric(balanceEnsurer, logger)
+
 	grpcServer := grpc.NewServer(
-		grpc.UnaryInterceptor(authInterceptorFabric.GetInterceptor()),
+		grpc.ChainUnaryInterceptor(authInterceptorFabric.GetInterceptor(),
+			balanceInterceptorFabric.GetInterceptor()),
 	)
 	storeServer := grpcwrap.NewStoreServerGRPC(purchaseCase, sendCoinsCase, userInfoCase, logger, tokenParser)
 

@@ -21,20 +21,20 @@ func main() {
 	secretKey := "secret-key"
 	grpcPort := ":9090"
 	databaseSettings := database.PostgresSettings{
-		User:       "admin",
-		Password:   "password",
+		User:       "store_admin",
+		Password:   "store_password",
 		Host:       "localhost",
-		Port:       "5432",
+		Port:       "5434",
 		DBName:     "merch_store_db",
 		SSLEnabled: false,
 	}
 
 	env.TrySetFromEnv(env.EnvGrpcStorePort, &grpcPort)
-	env.TrySetFromEnv(env.EnvDatabaseUser, &databaseSettings.User)
-	env.TrySetFromEnv(env.EnvDatabasePassword, &databaseSettings.Password)
-	env.TrySetFromEnv(env.EnvDatabaseHost, &databaseSettings.Host)
-	env.TrySetFromEnv(env.EnvDatabasePort, &databaseSettings.Port)
-	env.TrySetFromEnv(env.EnvDatabaseName, &databaseSettings.DBName)
+	env.TrySetFromEnv(env.EnvStoreDatabaseUser, &databaseSettings.User)
+	env.TrySetFromEnv(env.EnvStoreDatabasePassword, &databaseSettings.Password)
+	env.TrySetFromEnv(env.EnvStoreDatabaseHost, &databaseSettings.Host)
+	env.TrySetFromEnv(env.EnvStoreDatabasePort, &databaseSettings.Port)
+	env.TrySetFromEnv(env.EnvStoreDatabaseName, &databaseSettings.DBName)
 	env.TrySetFromEnv(env.EnvJwtSecret, &secretKey)
 
 	cfg := bootstrap.StoreConfig{

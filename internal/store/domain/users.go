@@ -6,6 +6,12 @@ import (
 	"github.com/Lexv0lk/merch-store/internal/pkg/database"
 )
 
+const StartBalance uint32 = 1000
+
+type BalanceEnsurer interface {
+	EnsureBalanceCreated(ctx context.Context, userId int, startValue uint32) error
+}
+
 type UserFinder interface {
 	GetTargetUsers(ctx context.Context, querier database.Querier, fromUsername, toUsername string) ([]UserInfo, error)
 }

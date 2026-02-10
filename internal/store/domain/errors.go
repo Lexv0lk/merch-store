@@ -84,3 +84,20 @@ func (e *BalanceNotFoundError) Is(target error) bool {
 }
 
 //endregion
+
+//region BalanceExistingError
+
+type BalanceExistingError struct {
+	Msg string
+}
+
+func (e *BalanceExistingError) Error() string {
+	return e.Msg
+}
+
+func (e *BalanceExistingError) Is(target error) bool {
+	_, ok := target.(*BalanceExistingError)
+	return ok
+}
+
+//endregion

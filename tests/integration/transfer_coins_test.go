@@ -11,9 +11,9 @@ import (
 	"testing"
 	"time"
 
-	auth "github.com/Lexv0lk/merch-store/internal/auth/domain"
 	gateway "github.com/Lexv0lk/merch-store/internal/gateway/domain"
 	"github.com/Lexv0lk/merch-store/internal/pkg/database"
+	store "github.com/Lexv0lk/merch-store/internal/store/domain"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -55,7 +55,7 @@ func TestTransferCoinsScenario(t *testing.T) {
 
 			// CHECK SENDER INFO
 			expectedSenderInfo := gateway.UserInfo{
-				Balance:   auth.StartBalance - transferAmount,
+				Balance:   store.StartBalance - transferAmount,
 				Inventory: []gateway.InventoryItem{},
 				TransferHistory: gateway.TransferHistory{
 					Received: []gateway.ReceivedTransfer{},
@@ -68,7 +68,7 @@ func TestTransferCoinsScenario(t *testing.T) {
 
 			// CHECK RECEIVER INFO
 			expectedReceiverInfo := gateway.UserInfo{
-				Balance:   auth.StartBalance + transferAmount,
+				Balance:   store.StartBalance + transferAmount,
 				Inventory: []gateway.InventoryItem{},
 				TransferHistory: gateway.TransferHistory{
 					Received: []gateway.ReceivedTransfer{
