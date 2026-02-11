@@ -19,7 +19,7 @@ func main() {
 	defaultLogger := logging.StdoutLogger
 
 	secretKey := "secret-key"
-	grpcPort := ":9090"
+	grpcPort := ":9091"
 	databaseSettings := database.PostgresSettings{
 		User:       "store_admin",
 		Password:   "store_password",
@@ -29,7 +29,12 @@ func main() {
 		SSLEnabled: false,
 	}
 
+	grpcAuthProt := ":9090"
+	grpcAuthHost := "localhost"
+
 	env.TrySetFromEnv(env.EnvGrpcStorePort, &grpcPort)
+	env.TrySetFromEnv(env.EnvGrpcAuthPort, &grpcAuthProt)
+	env.TrySetFromEnv(env.EnvGrpcAuthHost, &grpcAuthHost)
 	env.TrySetFromEnv(env.EnvStoreDatabaseUser, &databaseSettings.User)
 	env.TrySetFromEnv(env.EnvStoreDatabasePassword, &databaseSettings.Password)
 	env.TrySetFromEnv(env.EnvStoreDatabaseHost, &databaseSettings.Host)
@@ -38,8 +43,10 @@ func main() {
 	env.TrySetFromEnv(env.EnvJwtSecret, &secretKey)
 
 	cfg := bootstrap.StoreConfig{
-		JwtSecret:  secretKey,
-		DbSettings: databaseSettings,
+		JwtSecret:    secretKey,
+		DbSettings:   databaseSettings,
+		GrpcAuthPort: grpcAuthProt,
+		GrpcAuthHost: grpcAuthHost,
 	}
 
 	storeApp := bootstrap.NewStoreApp(cfg, defaultLogger)

@@ -50,6 +50,36 @@ func (mr *MockUsersRepositoryMockRecorder) CreateUser(ctx, username, hashedPassw
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateUser", reflect.TypeOf((*MockUsersRepository)(nil).CreateUser), ctx, username, hashedPassword)
 }
 
+// GetUserID mocks base method.
+func (m *MockUsersRepository) GetUserID(ctx context.Context, username string) (int, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetUserID", ctx, username)
+	ret0, _ := ret[0].(int)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetUserID indicates an expected call of GetUserID.
+func (mr *MockUsersRepositoryMockRecorder) GetUserID(ctx, username interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserID", reflect.TypeOf((*MockUsersRepository)(nil).GetUserID), ctx, username)
+}
+
+// GetUsernames mocks base method.
+func (m *MockUsersRepository) GetUsernames(ctx context.Context, userIDs []int) (map[int]string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetUsernames", ctx, userIDs)
+	ret0, _ := ret[0].(map[int]string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetUsernames indicates an expected call of GetUsernames.
+func (mr *MockUsersRepositoryMockRecorder) GetUsernames(ctx, userIDs interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUsernames", reflect.TypeOf((*MockUsersRepository)(nil).GetUsernames), ctx, userIDs)
+}
+
 // TryGetUserInfo mocks base method.
 func (m *MockUsersRepository) TryGetUserInfo(ctx context.Context, username string) (domain.UserInfo, bool, error) {
 	m.ctrl.T.Helper()

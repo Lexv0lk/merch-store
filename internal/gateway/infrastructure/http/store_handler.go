@@ -30,6 +30,8 @@ func (h *StoreHandler) GetInfo(c *gin.Context) {
 		st, ok := status.FromError(err)
 		if ok {
 			switch st.Code() {
+			case codes.Unauthenticated:
+				c.JSON(http.StatusUnauthorized, gin.H{"errors": st.Message()})
 			case codes.NotFound:
 				c.JSON(http.StatusBadRequest, gin.H{"errors": st.Message()})
 			default:
@@ -58,6 +60,8 @@ func (h *StoreHandler) SendCoin(c *gin.Context) {
 		st, ok := status.FromError(err)
 		if ok {
 			switch st.Code() {
+			case codes.Unauthenticated:
+				c.JSON(http.StatusUnauthorized, gin.H{"errors": st.Message()})
 			case codes.InvalidArgument, codes.FailedPrecondition, codes.NotFound:
 				c.JSON(http.StatusBadRequest, gin.H{"errors": st.Message()})
 			default:
@@ -81,6 +85,8 @@ func (h *StoreHandler) BuyItem(c *gin.Context) {
 		st, ok := status.FromError(err)
 		if ok {
 			switch st.Code() {
+			case codes.Unauthenticated:
+				c.JSON(http.StatusUnauthorized, gin.H{"errors": st.Message()})
 			case codes.InvalidArgument, codes.FailedPrecondition, codes.NotFound:
 				c.JSON(http.StatusBadRequest, gin.H{"errors": st.Message()})
 			default:

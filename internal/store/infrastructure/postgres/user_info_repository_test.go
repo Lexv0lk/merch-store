@@ -10,83 +10,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestUserInfoRepository_FetchUsername(t *testing.T) {
-	t.Parallel()
-
-	type testCase struct {
-		name   string
-		userId int
-
-		prepareFn func(t *testing.T, mock pgxmock.PgxConnIface)
-
-		expectedUsername string
-		expectedErr      error
-	}
-
-	testCases := []testCase{
-		{
-			name:   "user found",
-			userId: 1,
-			prepareFn: func(t *testing.T, mock pgxmock.PgxConnIface) {
-				t.Helper()
-				rows := pgxmock.NewRows([]string{"username"}).
-					AddRow("testuser")
-				mock.ExpectQuery("SELECT").
-					WithArgs(1).
-					WillReturnRows(rows)
-			},
-			expectedUsername: "testuser",
-			expectedErr:      nil,
-		},
-		{
-			name:   "user not found",
-			userId: 999,
-			prepareFn: func(t *testing.T, mock pgxmock.PgxConnIface) {
-				t.Helper()
-				mock.ExpectQuery("SELECT").
-					WithArgs(999).
-					WillReturnError(pgx.ErrNoRows)
-			},
-			expectedUsername: "",
-			expectedErr:      &domain.UserNotFoundError{},
-		},
-		{
-			name:   "database error",
-			userId: 1,
-			prepareFn: func(t *testing.T, mock pgxmock.PgxConnIface) {
-				t.Helper()
-				mock.ExpectQuery("SELECT").
-					WithArgs(1).
-					WillReturnError(assert.AnError)
-			},
-			expectedUsername: "",
-			expectedErr:      assert.AnError,
-		},
-	}
-
-	for _, tc := range testCases {
-		tt := tc
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-			mock, err := pgxmock.NewConn()
-			require.NoError(t, err)
-			defer mock.Close(t.Context())
-
-			tt.prepareFn(t, mock)
-
-			fetcher := NewUserInfoRepository(mock, nil)
-			username, err := fetcher.FetchUsername(t.Context(), tt.userId)
-
-			if tt.expectedErr != nil {
-				assert.ErrorIs(t, err, tt.expectedErr)
-			} else {
-				assert.NoError(t, err)
-				assert.Equal(t, tt.expectedUsername, username)
-			}
-		})
-	}
-}
-
 func TestUserInfoRepository_FetchUserBalance(t *testing.T) {
 	t.Parallel()
 
@@ -255,7 +178,7 @@ func TestUserInfoRepository_FetchUserCoinTransfers(t *testing.T) {
 
 		prepareFn func(t *testing.T, mock pgxmock.PgxConnIface)
 
-		expectedHistory domain.CoinTransferHistory
+		expectedHistory domain.TransferHistory
 		expectedErr     error
 	}
 
@@ -265,21 +188,25 @@ func TestUserInfoRepository_FetchUserCoinTransfers(t *testing.T) {
 			userId: 1,
 			prepareFn: func(t *testing.T, mock pgxmock.PgxConnIface) {
 				t.Helper()
-				// First row: outgoing (from_user_id = userId), targetUsername = fromUser
-				// Second row: incoming (to_user_id = userId), targetUsername = toUser
-				rows := pgxmock.NewRows([]string{"target_username", "from_username", "to_username", "amount"}).
-					AddRow("testuser", "testuser", "receiver1", 100). // outgoing: targetUsername != toUsername
-					AddRow("testuser", "sender1", "testuser", 50)     // incoming: targetUsername == toUsername
+				// First query: outcoming transfers (from_user_id = userId)
+				outcomingRows := pgxmock.NewRows([]string{"from_user_id", "to_user_id", "amount"}).
+					AddRow(1, 2, 100)
 				mock.ExpectQuery("SELECT").
 					WithArgs(1).
-					WillReturnRows(rows)
+					WillReturnRows(outcomingRows)
+				// Second query: incoming transfers (to_user_id = userId)
+				incomingRows := pgxmock.NewRows([]string{"from_user_id", "to_user_id", "amount"}).
+					AddRow(3, 1, 50)
+				mock.ExpectQuery("SELECT").
+					WithArgs(1).
+					WillReturnRows(incomingRows)
 			},
-			expectedHistory: domain.CoinTransferHistory{
-				IncomingTransfers: []domain.DirectTransfer{
-					{TargetName: "sender1", Amount: 50},
-				},
+			expectedHistory: domain.TransferHistory{
 				OutcomingTransfers: []domain.DirectTransfer{
-					{TargetName: "receiver1", Amount: 100},
+					{TargetID: 2, Amount: 100},
+				},
+				IncomingTransfers: []domain.DirectTransfer{
+					{TargetID: 1, Amount: 50},
 				},
 			},
 			expectedErr: nil,
@@ -289,20 +216,25 @@ func TestUserInfoRepository_FetchUserCoinTransfers(t *testing.T) {
 			userId: 1,
 			prepareFn: func(t *testing.T, mock pgxmock.PgxConnIface) {
 				t.Helper()
-				// Only incoming transfers: to_user_id = userId, targetUsername = toUser = testuser
-				rows := pgxmock.NewRows([]string{"target_username", "from_username", "to_username", "amount"}).
-					AddRow("testuser", "sender1", "testuser", 50).
-					AddRow("testuser", "sender2", "testuser", 75)
+				// Outcoming: empty
+				outcomingRows := pgxmock.NewRows([]string{"from_user_id", "to_user_id", "amount"})
 				mock.ExpectQuery("SELECT").
 					WithArgs(1).
-					WillReturnRows(rows)
+					WillReturnRows(outcomingRows)
+				// Incoming: has rows
+				incomingRows := pgxmock.NewRows([]string{"from_user_id", "to_user_id", "amount"}).
+					AddRow(3, 1, 50).
+					AddRow(4, 1, 75)
+				mock.ExpectQuery("SELECT").
+					WithArgs(1).
+					WillReturnRows(incomingRows)
 			},
-			expectedHistory: domain.CoinTransferHistory{
-				IncomingTransfers: []domain.DirectTransfer{
-					{TargetName: "sender1", Amount: 50},
-					{TargetName: "sender2", Amount: 75},
-				},
+			expectedHistory: domain.TransferHistory{
 				OutcomingTransfers: []domain.DirectTransfer{},
+				IncomingTransfers: []domain.DirectTransfer{
+					{TargetID: 1, Amount: 50},
+					{TargetID: 1, Amount: 75},
+				},
 			},
 			expectedErr: nil,
 		},
@@ -311,19 +243,23 @@ func TestUserInfoRepository_FetchUserCoinTransfers(t *testing.T) {
 			userId: 1,
 			prepareFn: func(t *testing.T, mock pgxmock.PgxConnIface) {
 				t.Helper()
-				rows := pgxmock.NewRows([]string{"target_username", "from_username", "to_username", "amount"})
+				outcomingRows := pgxmock.NewRows([]string{"from_user_id", "to_user_id", "amount"})
 				mock.ExpectQuery("SELECT").
 					WithArgs(1).
-					WillReturnRows(rows)
+					WillReturnRows(outcomingRows)
+				incomingRows := pgxmock.NewRows([]string{"from_user_id", "to_user_id", "amount"})
+				mock.ExpectQuery("SELECT").
+					WithArgs(1).
+					WillReturnRows(incomingRows)
 			},
-			expectedHistory: domain.CoinTransferHistory{
-				IncomingTransfers:  []domain.DirectTransfer{},
+			expectedHistory: domain.TransferHistory{
 				OutcomingTransfers: []domain.DirectTransfer{},
+				IncomingTransfers:  []domain.DirectTransfer{},
 			},
 			expectedErr: nil,
 		},
 		{
-			name:   "database error",
+			name:   "outcoming query error",
 			userId: 1,
 			prepareFn: func(t *testing.T, mock pgxmock.PgxConnIface) {
 				t.Helper()
@@ -331,7 +267,23 @@ func TestUserInfoRepository_FetchUserCoinTransfers(t *testing.T) {
 					WithArgs(1).
 					WillReturnError(assert.AnError)
 			},
-			expectedHistory: domain.CoinTransferHistory{},
+			expectedHistory: domain.TransferHistory{},
+			expectedErr:     assert.AnError,
+		},
+		{
+			name:   "incoming query error",
+			userId: 1,
+			prepareFn: func(t *testing.T, mock pgxmock.PgxConnIface) {
+				t.Helper()
+				outcomingRows := pgxmock.NewRows([]string{"from_user_id", "to_user_id", "amount"})
+				mock.ExpectQuery("SELECT").
+					WithArgs(1).
+					WillReturnRows(outcomingRows)
+				mock.ExpectQuery("SELECT").
+					WithArgs(1).
+					WillReturnError(assert.AnError)
+			},
+			expectedHistory: domain.TransferHistory{},
 			expectedErr:     assert.AnError,
 		},
 	}

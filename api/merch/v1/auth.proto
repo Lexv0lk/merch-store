@@ -8,6 +8,8 @@ option go_package = "github.com/Lexv0lk/merch-store/api/merch/v1;merchapi";
 
 service AuthService {
   rpc Authenticate(AuthRequest) returns (AuthResponse);
+  rpc GetUserID(GetUserIDRequest) returns (GetUserIDResponse);
+  rpc GetUsernames(GetUsernamesRequest) returns (GetUsernamesResponse);
 }
 
 // Messages
@@ -19,4 +21,20 @@ message AuthRequest {
 
 message AuthResponse {
   string token = 1;
+}
+
+message GetUserIDRequest {
+  string username = 1;
+}
+
+message GetUserIDResponse {
+  int32 userID = 1;
+}
+
+message GetUsernamesRequest {
+  repeated int32 userIDs = 1;
+}
+
+message GetUsernamesResponse {
+  map<int32, string> usernames = 1;
 }

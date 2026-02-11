@@ -10,10 +10,12 @@ import (
 	"github.com/Lexv0lk/merch-store/internal/pkg/jwt"
 	"github.com/Lexv0lk/merch-store/internal/pkg/logging"
 	"github.com/Lexv0lk/merch-store/internal/store/application"
+	"github.com/Lexv0lk/merch-store/internal/store/domain"
 	grpcwrap "github.com/Lexv0lk/merch-store/internal/store/grpc"
 	"github.com/Lexv0lk/merch-store/internal/store/infrastructure/postgres"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 const (
@@ -44,20 +46,26 @@ func (a *StoreApp) Run(ctx context.Context, grpcLis net.Listener) error {
 		return fmt.Errorf("failed to connect to database: %w", err)
 	}
 
+	grpcAuthConn, err := grpc.NewClient(a.cfg.GrpcAuthHost+a.cfg.GrpcAuthPort, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		return fmt.Errorf("failed to connect to auth grpc server: %w", err)
+	}
+	defer grpcAuthConn.Close()
+
+	authService := grpcwrap.NewAuthAdapter(merchapi.NewAuthServiceClient(grpcAuthConn))
+
 	a.dbpool = dbpool
 	txManager := database.NewDelegateTxManager(dbpool)
 
 	purchaseHandler := postgres.NewPurchaseHandler()
 	goodsRepository := postgres.NewGoodsRepository(dbpool)
-	balanceLocker := postgres.NewBalanceLocker()
-	purchaseCase := application.NewPurchaseCase(goodsRepository, balanceLocker, purchaseHandler, txManager)
-
-	transactionProceeder := postgres.NewTransactionProceeder()
-	userFinder := postgres.NewUserFinder()
-	sendCoinsCase := application.NewSendCoinsCase(txManager, userFinder, transactionProceeder)
-
+	balancesRepository := postgres.NewBalancesRepository(dbpool)
 	userInfoRepository := postgres.NewUserInfoRepository(dbpool, logger)
-	userInfoCase := application.NewUserInfoCase(userInfoRepository, logger)
+	transactionProceeder := postgres.NewTransactionProceeder()
+
+	purchaseCase := application.NewPurchaseCase(goodsRepository, balancesRepository, purchaseHandler, txManager)
+	sendCoinsCase := application.NewSendCoinsCase(txManager, authService, userInfoRepository, balancesRepository, transactionProceeder)
+	userInfoCase := application.NewUserInfoCase(userInfoRepository, authService, logger)
 
 	server, err := createGRPCServer(
 		purchaseCase,
@@ -66,7 +74,7 @@ func (a *StoreApp) Run(ctx context.Context, grpcLis net.Listener) error {
 		logger,
 		jwt.NewJWTTokenParser(),
 		a.cfg.JwtSecret,
-		dbpool,
+		balancesRepository,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to create gRPC server: %w", err)
@@ -112,11 +120,9 @@ func createGRPCServer(
 	logger logging.Logger,
 	tokenParser jwt.TokenParser,
 	secretKey string,
-	dbpool *pgxpool.Pool,
+	balanceEnsurer domain.BalanceEnsurer,
 ) (*grpc.Server, error) {
 	authInterceptorFabric := grpcwrap.NewAuthInterceptorFabric(secretKey, tokenParser, logger)
-
-	balanceEnsurer := postgres.NewBalanceCreator(dbpool)
 	balanceInterceptorFabric := grpcwrap.NewBalanceInterceptorFabric(balanceEnsurer, logger)
 
 	grpcServer := grpc.NewServer(

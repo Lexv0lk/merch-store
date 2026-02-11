@@ -56,6 +56,46 @@ func (mr *MockAuthServiceClientMockRecorder) Authenticate(ctx, in interface{}, o
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Authenticate", reflect.TypeOf((*MockAuthServiceClient)(nil).Authenticate), varargs...)
 }
 
+// GetUserID mocks base method.
+func (m *MockAuthServiceClient) GetUserID(ctx context.Context, in *merchapi.GetUserIDRequest, opts ...grpc.CallOption) (*merchapi.GetUserIDResponse, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{ctx, in}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "GetUserID", varargs...)
+	ret0, _ := ret[0].(*merchapi.GetUserIDResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetUserID indicates an expected call of GetUserID.
+func (mr *MockAuthServiceClientMockRecorder) GetUserID(ctx, in interface{}, opts ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{ctx, in}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserID", reflect.TypeOf((*MockAuthServiceClient)(nil).GetUserID), varargs...)
+}
+
+// GetUsernames mocks base method.
+func (m *MockAuthServiceClient) GetUsernames(ctx context.Context, in *merchapi.GetUsernamesRequest, opts ...grpc.CallOption) (*merchapi.GetUsernamesResponse, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{ctx, in}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "GetUsernames", varargs...)
+	ret0, _ := ret[0].(*merchapi.GetUsernamesResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetUsernames indicates an expected call of GetUsernames.
+func (mr *MockAuthServiceClientMockRecorder) GetUsernames(ctx, in interface{}, opts ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{ctx, in}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUsernames", reflect.TypeOf((*MockAuthServiceClient)(nil).GetUsernames), varargs...)
+}
+
 // MockAuthServiceServer is a mock of AuthServiceServer interface.
 type MockAuthServiceServer struct {
 	ctrl     *gomock.Controller
@@ -92,6 +132,36 @@ func (m *MockAuthServiceServer) Authenticate(arg0 context.Context, arg1 *merchap
 func (mr *MockAuthServiceServerMockRecorder) Authenticate(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Authenticate", reflect.TypeOf((*MockAuthServiceServer)(nil).Authenticate), arg0, arg1)
+}
+
+// GetUserID mocks base method.
+func (m *MockAuthServiceServer) GetUserID(arg0 context.Context, arg1 *merchapi.GetUserIDRequest) (*merchapi.GetUserIDResponse, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetUserID", arg0, arg1)
+	ret0, _ := ret[0].(*merchapi.GetUserIDResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetUserID indicates an expected call of GetUserID.
+func (mr *MockAuthServiceServerMockRecorder) GetUserID(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserID", reflect.TypeOf((*MockAuthServiceServer)(nil).GetUserID), arg0, arg1)
+}
+
+// GetUsernames mocks base method.
+func (m *MockAuthServiceServer) GetUsernames(arg0 context.Context, arg1 *merchapi.GetUsernamesRequest) (*merchapi.GetUsernamesResponse, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetUsernames", arg0, arg1)
+	ret0, _ := ret[0].(*merchapi.GetUsernamesResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetUsernames indicates an expected call of GetUsernames.
+func (mr *MockAuthServiceServerMockRecorder) GetUsernames(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUsernames", reflect.TypeOf((*MockAuthServiceServer)(nil).GetUsernames), arg0, arg1)
 }
 
 // mustEmbedUnimplementedAuthServiceServer mocks base method.

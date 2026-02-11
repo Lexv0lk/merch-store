@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	merchapi "github.com/Lexv0lk/merch-store/gen/merch/v1"
+	authmocks "github.com/Lexv0lk/merch-store/gen/mocks/auth"
 	jwtmocks "github.com/Lexv0lk/merch-store/gen/mocks/jwt"
 	loggingmocks "github.com/Lexv0lk/merch-store/gen/mocks/logging"
 	"github.com/Lexv0lk/merch-store/internal/auth/domain"
@@ -23,7 +24,7 @@ func TestAuthServerGRPC_Authenticate(t *testing.T) {
 		name string
 		req  merchapi.AuthRequest
 
-		prepareFn func(t *testing.T, ctrl *gomock.Controller) (jwt.Authenticator, logging.Logger)
+		prepareFn func(t *testing.T, ctrl *gomock.Controller) (jwt.Authenticator, domain.UsersRepository, logging.Logger)
 
 		expectedResp merchapi.AuthResponse
 		expectedCode *codes.Code
@@ -39,13 +40,14 @@ func TestAuthServerGRPC_Authenticate(t *testing.T) {
 				Username: "testuser",
 				Password: "testpassword",
 			},
-			prepareFn: func(t *testing.T, ctrl *gomock.Controller) (jwt.Authenticator, logging.Logger) {
+			prepareFn: func(t *testing.T, ctrl *gomock.Controller) (jwt.Authenticator, domain.UsersRepository, logging.Logger) {
 				authenticator := jwtmocks.NewMockAuthenticator(ctrl)
+				usersRepo := authmocks.NewMockUsersRepository(ctrl)
 				logger := loggingmocks.NewMockLogger(ctrl)
 
 				authenticator.EXPECT().Authenticate(gomock.Any(), "testuser", "testpassword").Return("jwt_token", nil)
 
-				return authenticator, logger
+				return authenticator, usersRepo, logger
 			},
 			expectedResp: merchapi.AuthResponse{Token: "jwt_token"},
 			expectedCode: nil,
@@ -56,14 +58,15 @@ func TestAuthServerGRPC_Authenticate(t *testing.T) {
 				Username: "testuser",
 				Password: "wrongpassword",
 			},
-			prepareFn: func(t *testing.T, ctrl *gomock.Controller) (jwt.Authenticator, logging.Logger) {
+			prepareFn: func(t *testing.T, ctrl *gomock.Controller) (jwt.Authenticator, domain.UsersRepository, logging.Logger) {
 				authenticator := jwtmocks.NewMockAuthenticator(ctrl)
+				usersRepo := authmocks.NewMockUsersRepository(ctrl)
 				logger := loggingmocks.NewMockLogger(ctrl)
 
 				authenticator.EXPECT().Authenticate(gomock.Any(), "testuser", "wrongpassword").Return("", &domain.CredentialsMismatchError{Msg: "invalid credentials"})
 				logger.EXPECT().Error(gomock.Any(), gomock.Any(), gomock.Any())
 
-				return authenticator, logger
+				return authenticator, usersRepo, logger
 			},
 			expectedResp: merchapi.AuthResponse{},
 			expectedCode: &unauthenticated,
@@ -74,14 +77,15 @@ func TestAuthServerGRPC_Authenticate(t *testing.T) {
 				Username: "testuser",
 				Password: "testpassword",
 			},
-			prepareFn: func(t *testing.T, ctrl *gomock.Controller) (jwt.Authenticator, logging.Logger) {
+			prepareFn: func(t *testing.T, ctrl *gomock.Controller) (jwt.Authenticator, domain.UsersRepository, logging.Logger) {
 				authenticator := jwtmocks.NewMockAuthenticator(ctrl)
+				usersRepo := authmocks.NewMockUsersRepository(ctrl)
 				logger := loggingmocks.NewMockLogger(ctrl)
 
 				authenticator.EXPECT().Authenticate(gomock.Any(), "testuser", "testpassword").Return("", errors.New("database error"))
 				logger.EXPECT().Error(gomock.Any(), gomock.Any(), gomock.Any())
 
-				return authenticator, logger
+				return authenticator, usersRepo, logger
 			},
 			expectedResp: merchapi.AuthResponse{},
 			expectedCode: &internal,
@@ -92,9 +96,9 @@ func TestAuthServerGRPC_Authenticate(t *testing.T) {
 		tt := tc
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			authenticator, logger := tt.prepareFn(t, gomock.NewController(t))
+			authenticator, usersRepo, logger := tt.prepareFn(t, gomock.NewController(t))
 
-			authServer := NewAuthServerGRPC(authenticator, logger)
+			authServer := NewAuthServerGRPC(authenticator, usersRepo, logger)
 
 			resp, err := authServer.Authenticate(t.Context(), &tt.req)
 

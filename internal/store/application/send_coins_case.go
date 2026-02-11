@@ -10,43 +10,49 @@ import (
 
 type SendCoinsCase struct {
 	txManager            database.TxManager
-	userFinder           domain.UserFinder
+	userIDFetcher        domain.UserIDFetcher
 	transactionProceeder domain.TransactionProceeder
+	userBalanceFetcher   domain.UserBalanceFetcher
+	balanceCreator       domain.BalanceEnsurer
 }
 
-func NewSendCoinsCase(txManager database.TxManager, userFinder domain.UserFinder, transactionProceeder domain.TransactionProceeder) *SendCoinsCase {
+func NewSendCoinsCase(txManager database.TxManager,
+	userIDFetcher domain.UserIDFetcher,
+	userBalanceFetcher domain.UserBalanceFetcher,
+	balanceCreator domain.BalanceEnsurer,
+	transactionProceeder domain.TransactionProceeder) *SendCoinsCase {
 	return &SendCoinsCase{
 		txManager:            txManager,
-		userFinder:           userFinder,
+		userIDFetcher:        userIDFetcher,
 		transactionProceeder: transactionProceeder,
+		userBalanceFetcher:   userBalanceFetcher,
+		balanceCreator:       balanceCreator,
 	}
 }
 
-func (sc *SendCoinsCase) SendCoins(ctx context.Context, fromUsername string, toUsername string, amount uint32) error {
-	if fromUsername == toUsername {
-		return &domain.InvalidArgumentsError{Msg: "fromUsername must differ from toUsername"}
+func (sc *SendCoinsCase) SendCoins(ctx context.Context, fromUserID int, toUsername string, amount uint32) error {
+	toUserID, err := sc.userIDFetcher.FetchUserID(ctx, toUsername)
+	if err != nil {
+		return &domain.UserNotFoundError{Msg: fmt.Sprintf("user not found: %s", toUsername)}
+	}
+
+	if toUserID == fromUserID {
+		return &domain.InvalidArgumentsError{Msg: "from_user must differ from to_user"}
+	}
+
+	err = sc.balanceCreator.EnsureBalanceCreated(ctx, toUserID, domain.StartBalance)
+	if err != nil {
+		return fmt.Errorf("failed to ensure balance for user %d: %w", toUserID, err)
 	}
 
 	return sc.txManager.WithinTransaction(ctx, func(ctx context.Context, executor database.QueryExecuter) error {
-		users, err := sc.userFinder.GetTargetUsers(ctx, executor, fromUsername, toUsername)
-		if err != nil {
-			return fmt.Errorf("failed to find target users: %w", err)
+		fromUserBalance, err := sc.userBalanceFetcher.FetchUserBalance(ctx, fromUserID)
+
+		if fromUserBalance < amount {
+			return &domain.InsufficientBalanceError{Msg: fmt.Sprintf("user %d has insufficient balance", fromUserID)}
 		}
 
-		var fromUser, toUser *domain.UserInfo
-		if users[0].Username == fromUsername {
-			fromUser = &users[0]
-			toUser = &users[1]
-		} else {
-			fromUser = &users[1]
-			toUser = &users[0]
-		}
-
-		if fromUser.Balance < amount {
-			return &domain.InsufficientBalanceError{Msg: fmt.Sprintf("user %s has insufficient balance", fromUsername)}
-		}
-
-		err = sc.transactionProceeder.ProceedTransaction(ctx, executor, amount, fromUser, toUser)
+		err = sc.transactionProceeder.ProceedTransaction(ctx, executor, amount, fromUserID, toUserID)
 		if err != nil {
 			return fmt.Errorf("failed to proceed transaction: %w", err)
 		}

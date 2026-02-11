@@ -16,3 +16,20 @@ func (e *CredentialsMismatchError) Is(target error) bool {
 }
 
 //endregion
+
+//region UserNotFoundError
+
+type UserNotFoundError struct {
+	Msg string
+}
+
+func (e *UserNotFoundError) Error() string {
+	return e.Msg
+}
+
+func (e *UserNotFoundError) Is(target error) bool {
+	_, ok := target.(*UserNotFoundError)
+	return ok
+}
+
+//endregion

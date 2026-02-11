@@ -13,42 +13,41 @@ import (
 	gomock "github.com/golang/mock/gomock"
 )
 
-// MockUserFinder is a mock of UserFinder interface.
-type MockUserFinder struct {
+// MockBalanceEnsurer is a mock of BalanceEnsurer interface.
+type MockBalanceEnsurer struct {
 	ctrl     *gomock.Controller
-	recorder *MockUserFinderMockRecorder
+	recorder *MockBalanceEnsurerMockRecorder
 }
 
-// MockUserFinderMockRecorder is the mock recorder for MockUserFinder.
-type MockUserFinderMockRecorder struct {
-	mock *MockUserFinder
+// MockBalanceEnsurerMockRecorder is the mock recorder for MockBalanceEnsurer.
+type MockBalanceEnsurerMockRecorder struct {
+	mock *MockBalanceEnsurer
 }
 
-// NewMockUserFinder creates a new mock instance.
-func NewMockUserFinder(ctrl *gomock.Controller) *MockUserFinder {
-	mock := &MockUserFinder{ctrl: ctrl}
-	mock.recorder = &MockUserFinderMockRecorder{mock}
+// NewMockBalanceEnsurer creates a new mock instance.
+func NewMockBalanceEnsurer(ctrl *gomock.Controller) *MockBalanceEnsurer {
+	mock := &MockBalanceEnsurer{ctrl: ctrl}
+	mock.recorder = &MockBalanceEnsurerMockRecorder{mock}
 	return mock
 }
 
 // EXPECT returns an object that allows the caller to indicate expected use.
-func (m *MockUserFinder) EXPECT() *MockUserFinderMockRecorder {
+func (m *MockBalanceEnsurer) EXPECT() *MockBalanceEnsurerMockRecorder {
 	return m.recorder
 }
 
-// GetTargetUsers mocks base method.
-func (m *MockUserFinder) GetTargetUsers(ctx context.Context, querier database.Querier, fromUsername, toUsername string) ([]domain.UserInfo, error) {
+// EnsureBalanceCreated mocks base method.
+func (m *MockBalanceEnsurer) EnsureBalanceCreated(ctx context.Context, userId int, startValue uint32) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetTargetUsers", ctx, querier, fromUsername, toUsername)
-	ret0, _ := ret[0].([]domain.UserInfo)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
+	ret := m.ctrl.Call(m, "EnsureBalanceCreated", ctx, userId, startValue)
+	ret0, _ := ret[0].(error)
+	return ret0
 }
 
-// GetTargetUsers indicates an expected call of GetTargetUsers.
-func (mr *MockUserFinderMockRecorder) GetTargetUsers(ctx, querier, fromUsername, toUsername interface{}) *gomock.Call {
+// EnsureBalanceCreated indicates an expected call of EnsureBalanceCreated.
+func (mr *MockBalanceEnsurerMockRecorder) EnsureBalanceCreated(ctx, userId, startValue interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTargetUsers", reflect.TypeOf((*MockUserFinder)(nil).GetTargetUsers), ctx, querier, fromUsername, toUsername)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EnsureBalanceCreated", reflect.TypeOf((*MockBalanceEnsurer)(nil).EnsureBalanceCreated), ctx, userId, startValue)
 }
 
 // MockUserBalanceLocker is a mock of UserBalanceLocker interface.
@@ -128,10 +127,10 @@ func (mr *MockUserInfoRepositoryMockRecorder) FetchUserBalance(ctx, userId inter
 }
 
 // FetchUserCoinTransfers mocks base method.
-func (m *MockUserInfoRepository) FetchUserCoinTransfers(ctx context.Context, userId int) (domain.CoinTransferHistory, error) {
+func (m *MockUserInfoRepository) FetchUserCoinTransfers(ctx context.Context, userId int) (domain.TransferHistory, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "FetchUserCoinTransfers", ctx, userId)
-	ret0, _ := ret[0].(domain.CoinTransferHistory)
+	ret0, _ := ret[0].(domain.TransferHistory)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -157,17 +156,136 @@ func (mr *MockUserInfoRepositoryMockRecorder) FetchUserPurchases(ctx, userId int
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FetchUserPurchases", reflect.TypeOf((*MockUserInfoRepository)(nil).FetchUserPurchases), ctx, userId)
 }
 
-// FetchUsername mocks base method.
-func (m *MockUserInfoRepository) FetchUsername(ctx context.Context, userId int) (string, error) {
+// MockUsernameGetter is a mock of UsernameGetter interface.
+type MockUsernameGetter struct {
+	ctrl     *gomock.Controller
+	recorder *MockUsernameGetterMockRecorder
+}
+
+// MockUsernameGetterMockRecorder is the mock recorder for MockUsernameGetter.
+type MockUsernameGetterMockRecorder struct {
+	mock *MockUsernameGetter
+}
+
+// NewMockUsernameGetter creates a new mock instance.
+func NewMockUsernameGetter(ctrl *gomock.Controller) *MockUsernameGetter {
+	mock := &MockUsernameGetter{ctrl: ctrl}
+	mock.recorder = &MockUsernameGetterMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockUsernameGetter) EXPECT() *MockUsernameGetterMockRecorder {
+	return m.recorder
+}
+
+// GetUsername mocks base method.
+func (m *MockUsernameGetter) GetUsername(ctx context.Context, userId int) (string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "FetchUsername", ctx, userId)
+	ret := m.ctrl.Call(m, "GetUsername", ctx, userId)
 	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// FetchUsername indicates an expected call of FetchUsername.
-func (mr *MockUserInfoRepositoryMockRecorder) FetchUsername(ctx, userId interface{}) *gomock.Call {
+// GetUsername indicates an expected call of GetUsername.
+func (mr *MockUsernameGetterMockRecorder) GetUsername(ctx, userId interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FetchUsername", reflect.TypeOf((*MockUserInfoRepository)(nil).FetchUsername), ctx, userId)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUsername", reflect.TypeOf((*MockUsernameGetter)(nil).GetUsername), ctx, userId)
+}
+
+// GetUsernames mocks base method.
+func (m *MockUsernameGetter) GetUsernames(ctx context.Context, userId ...int) (map[int]string, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{ctx}
+	for _, a := range userId {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "GetUsernames", varargs...)
+	ret0, _ := ret[0].(map[int]string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetUsernames indicates an expected call of GetUsernames.
+func (mr *MockUsernameGetterMockRecorder) GetUsernames(ctx interface{}, userId ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{ctx}, userId...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUsernames", reflect.TypeOf((*MockUsernameGetter)(nil).GetUsernames), varargs...)
+}
+
+// MockUserIDFetcher is a mock of UserIDFetcher interface.
+type MockUserIDFetcher struct {
+	ctrl     *gomock.Controller
+	recorder *MockUserIDFetcherMockRecorder
+}
+
+// MockUserIDFetcherMockRecorder is the mock recorder for MockUserIDFetcher.
+type MockUserIDFetcherMockRecorder struct {
+	mock *MockUserIDFetcher
+}
+
+// NewMockUserIDFetcher creates a new mock instance.
+func NewMockUserIDFetcher(ctrl *gomock.Controller) *MockUserIDFetcher {
+	mock := &MockUserIDFetcher{ctrl: ctrl}
+	mock.recorder = &MockUserIDFetcherMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockUserIDFetcher) EXPECT() *MockUserIDFetcherMockRecorder {
+	return m.recorder
+}
+
+// FetchUserID mocks base method.
+func (m *MockUserIDFetcher) FetchUserID(ctx context.Context, username string) (int, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "FetchUserID", ctx, username)
+	ret0, _ := ret[0].(int)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// FetchUserID indicates an expected call of FetchUserID.
+func (mr *MockUserIDFetcherMockRecorder) FetchUserID(ctx, username interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FetchUserID", reflect.TypeOf((*MockUserIDFetcher)(nil).FetchUserID), ctx, username)
+}
+
+// MockUserBalanceFetcher is a mock of UserBalanceFetcher interface.
+type MockUserBalanceFetcher struct {
+	ctrl     *gomock.Controller
+	recorder *MockUserBalanceFetcherMockRecorder
+}
+
+// MockUserBalanceFetcherMockRecorder is the mock recorder for MockUserBalanceFetcher.
+type MockUserBalanceFetcherMockRecorder struct {
+	mock *MockUserBalanceFetcher
+}
+
+// NewMockUserBalanceFetcher creates a new mock instance.
+func NewMockUserBalanceFetcher(ctrl *gomock.Controller) *MockUserBalanceFetcher {
+	mock := &MockUserBalanceFetcher{ctrl: ctrl}
+	mock.recorder = &MockUserBalanceFetcherMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockUserBalanceFetcher) EXPECT() *MockUserBalanceFetcherMockRecorder {
+	return m.recorder
+}
+
+// FetchUserBalance mocks base method.
+func (m *MockUserBalanceFetcher) FetchUserBalance(ctx context.Context, userId int) (uint32, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "FetchUserBalance", ctx, userId)
+	ret0, _ := ret[0].(uint32)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// FetchUserBalance indicates an expected call of FetchUserBalance.
+func (mr *MockUserBalanceFetcherMockRecorder) FetchUserBalance(ctx, userId interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FetchUserBalance", reflect.TypeOf((*MockUserBalanceFetcher)(nil).FetchUserBalance), ctx, userId)
 }

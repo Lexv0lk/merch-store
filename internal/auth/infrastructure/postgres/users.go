@@ -51,3 +51,49 @@ func (r *UsersRepository) TryGetUserInfo(ctx context.Context, username string) (
 
 	return userInfo, true, nil
 }
+
+func (r *UsersRepository) GetUserID(ctx context.Context, username string) (int, error) {
+	var userID int
+	querySQL := `SELECT id FROM users WHERE username = $1`
+
+	row := r.querier.QueryRow(ctx, querySQL, username)
+	err := row.Scan(&userID)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return 0, &domain.UserNotFoundError{}
+		}
+
+		return 0, err
+	}
+
+	return userID, nil
+}
+
+func (r *UsersRepository) GetUsernames(ctx context.Context, userIDs []int) (map[int]string, error) {
+	querySQL := `SELECT id, username FROM users WHERE id = ANY($1)`
+
+	rows, err := r.querier.Query(ctx, querySQL, userIDs)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	usernames := make(map[int]string)
+
+	for rows.Next() {
+		var id int
+		var username string
+
+		if err := rows.Scan(&id, &username); err != nil {
+			return nil, err
+		}
+
+		usernames[id] = username
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return usernames, nil
+}

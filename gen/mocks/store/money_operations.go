@@ -37,17 +37,17 @@ func (m *MockTransactionProceeder) EXPECT() *MockTransactionProceederMockRecorde
 }
 
 // ProceedTransaction mocks base method.
-func (m *MockTransactionProceeder) ProceedTransaction(ctx context.Context, executor database.Executor, amount uint32, fromUser, toUser *domain.UserInfo) error {
+func (m *MockTransactionProceeder) ProceedTransaction(ctx context.Context, executor database.Executor, amount uint32, fromUserID, toUserID int) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ProceedTransaction", ctx, executor, amount, fromUser, toUser)
+	ret := m.ctrl.Call(m, "ProceedTransaction", ctx, executor, amount, fromUserID, toUserID)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // ProceedTransaction indicates an expected call of ProceedTransaction.
-func (mr *MockTransactionProceederMockRecorder) ProceedTransaction(ctx, executor, amount, fromUser, toUser interface{}) *gomock.Call {
+func (mr *MockTransactionProceederMockRecorder) ProceedTransaction(ctx, executor, amount, fromUserID, toUserID interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ProceedTransaction", reflect.TypeOf((*MockTransactionProceeder)(nil).ProceedTransaction), ctx, executor, amount, fromUser, toUser)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ProceedTransaction", reflect.TypeOf((*MockTransactionProceeder)(nil).ProceedTransaction), ctx, executor, amount, fromUserID, toUserID)
 }
 
 // MockPurchaser is a mock of Purchaser interface.

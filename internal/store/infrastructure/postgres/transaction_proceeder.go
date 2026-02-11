@@ -14,9 +14,9 @@ func NewTransactionProceeder() *TransactionProceeder {
 	return &TransactionProceeder{}
 }
 
-func (tp *TransactionProceeder) ProceedTransaction(ctx context.Context, executor database.Executor, amount uint32, fromUser, toUser *domain.UserInfo) error {
+func (tp *TransactionProceeder) ProceedTransaction(ctx context.Context, executor database.Executor, amount uint32, fromUserID, toUserID int) error {
 	updateBalanceSQL := `UPDATE balances SET balance = balance - $1 WHERE user_id = $2 AND balance >= $1`
-	tag, err := executor.Exec(ctx, updateBalanceSQL, amount, fromUser.Id)
+	tag, err := executor.Exec(ctx, updateBalanceSQL, amount, fromUserID)
 	if err != nil {
 		return fmt.Errorf("failed to update balance for fromUser: %w", err)
 	} else if tag.RowsAffected() == 0 {
@@ -24,13 +24,13 @@ func (tp *TransactionProceeder) ProceedTransaction(ctx context.Context, executor
 	}
 
 	updateBalanceSQL = `UPDATE balances SET balance = balance + $1 WHERE user_id = $2`
-	_, err = executor.Exec(ctx, updateBalanceSQL, amount, toUser.Id)
+	_, err = executor.Exec(ctx, updateBalanceSQL, amount, toUserID)
 	if err != nil {
 		return fmt.Errorf("failed to update balance for toUser: %w", err)
 	}
 
 	insertTransactionSQL := `INSERT INTO transactions (from_user_id, to_user_id, amount) VALUES ($1, $2, $3)`
-	_, err = executor.Exec(ctx, insertTransactionSQL, fromUser.Id, toUser.Id, amount)
+	_, err = executor.Exec(ctx, insertTransactionSQL, fromUserID, toUserID, amount)
 	if err != nil {
 		return fmt.Errorf("failed to insert transaction record: %w", err)
 	}

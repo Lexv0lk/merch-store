@@ -7,7 +7,7 @@ import (
 )
 
 type TransactionProceeder interface {
-	ProceedTransaction(ctx context.Context, executor database.Executor, amount uint32, fromUser, toUser *UserInfo) error
+	ProceedTransaction(ctx context.Context, executor database.Executor, amount uint32, fromUserID, toUserID int) error
 }
 
 type Purchaser interface {

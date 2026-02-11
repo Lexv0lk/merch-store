@@ -39,6 +39,7 @@ func (a *AuthApp) Run(ctx context.Context, grpcLis net.Listener) error {
 	logger := a.logger
 	databaseSettings := a.cfg.DbSettings
 	dbURL := databaseSettings.GetURL()
+	logger.Info(fmt.Sprintf("connecting to %s", dbURL))
 
 	dbpool, err := pgxpool.New(ctx, dbURL)
 	if err != nil {
@@ -54,14 +55,14 @@ func (a *AuthApp) Run(ctx context.Context, grpcLis net.Listener) error {
 	authenticator := application.NewAuthenticator(postgresUserRepository, passwordHasher, tokenIssuer, a.cfg.SecretKey)
 
 	grpcServer := grpc.NewServer()
-	authServer := grpcwrap.NewAuthServerGRPC(authenticator, logger)
+	authServer := grpcwrap.NewAuthServerGRPC(authenticator, postgresUserRepository, logger)
 	merchapi.RegisterAuthServiceServer(grpcServer, authServer)
 
 	a.grpcServer = grpcServer
 
 	errChan := make(chan error, 1)
 	go func() {
-		logger.Info("starting gRPC server", "port", a.cfg.GrpcPort)
+		logger.Info("starting gRPC server", "addr", grpcLis.Addr().String())
 		if err := grpcServer.Serve(grpcLis); err != nil {
 			errChan <- fmt.Errorf("failed to serve gRPC: %w", err)
 			return

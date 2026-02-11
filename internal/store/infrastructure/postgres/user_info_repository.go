@@ -12,10 +12,9 @@ import (
 )
 
 type transaction struct {
-	targetUsername string
-	fromUsername   string
-	toUsername     string
-	amount         int
+	fromUserID int
+	toUserID   int
+	amount     int
 }
 
 type UserInfoRepository struct {
@@ -28,21 +27,6 @@ func NewUserInfoRepository(queryExecuter database.QueryExecuter, logger logging.
 		queryExecuter: queryExecuter,
 		logger:        logger,
 	}
-}
-
-func (uif *UserInfoRepository) FetchUsername(ctx context.Context, userId int) (string, error) {
-	sql := `SELECT username FROM users WHERE id = $1`
-	var username string
-	err := uif.queryExecuter.QueryRow(ctx, sql, userId).Scan(&username)
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return "", &domain.UserNotFoundError{Msg: fmt.Sprintf("user with id %d not found", userId)}
-		}
-
-		return "", err
-	}
-
-	return username, nil
 }
 
 func (uif *UserInfoRepository) FetchUserBalance(ctx context.Context, userId int) (uint32, error) {
@@ -92,55 +76,50 @@ func (uif *UserInfoRepository) FetchUserPurchases(ctx context.Context, userId in
 	return goods, nil
 }
 
-func (uif *UserInfoRepository) FetchUserCoinTransfers(ctx context.Context, userId int) (domain.CoinTransferHistory, error) {
-	defer func() {
-		if r := recover(); r != nil {
-			uif.logger.Error("panic recovered in FetchUserCoinTransfers", "error", r)
-		}
-	}()
-
-	sql := `
-SELECT u_from.username, u_from.username, u_to.username, amount FROM transactions
-JOIN users u_from ON transactions.from_user_id = u_from.id
-JOIN users u_to  ON transactions.to_user_id = u_to.id
-WHERE from_user_id = $1
-
-UNION ALL
-
-SELECT u_to.username, u_from.username, u_to.username, amount FROM transactions
-JOIN users u_from ON transactions.from_user_id = u_from.id
-JOIN users u_to  ON transactions.to_user_id = u_to.id
-WHERE to_user_id = $1;
-`
-	rows, err := uif.queryExecuter.Query(ctx, sql, userId)
+func (uif *UserInfoRepository) FetchUserCoinTransfers(ctx context.Context, userId int) (domain.TransferHistory, error) {
+	fromUserSQL := `SELECT from_user_id, to_user_id, amount FROM transactions WHERE from_user_id = $1`
+	outcomingRows, err := uif.queryExecuter.Query(ctx, fromUserSQL, userId)
 	if err != nil {
-		return domain.CoinTransferHistory{}, err
+		return domain.TransferHistory{}, err
 	}
-	defer rows.Close()
+	defer outcomingRows.Close()
 
-	transferHistory := domain.CoinTransferHistory{
-		IncomingTransfers:  make([]domain.DirectTransfer, 0),
-		OutcomingTransfers: make([]domain.DirectTransfer, 0),
+	toUserSQL := `SELECT from_user_id, to_user_id, amount FROM transactions WHERE to_user_id = $1`
+	incomingRows, err := uif.queryExecuter.Query(ctx, toUserSQL, userId)
+	if err != nil {
+		return domain.TransferHistory{}, err
+	}
+	defer incomingRows.Close()
+
+	transferHistory := domain.TransferHistory{}
+
+	transferHistory.OutcomingTransfers, err = processRows(outcomingRows)
+	if err != nil {
+		return domain.TransferHistory{}, err
 	}
 
-	for rows.Next() {
-		var transfer transaction
-		if err := rows.Scan(&transfer.targetUsername, &transfer.fromUsername, &transfer.toUsername, &transfer.amount); err != nil {
-			return domain.CoinTransferHistory{}, err
-		}
-
-		if transfer.toUsername == transfer.targetUsername {
-			transferHistory.IncomingTransfers = append(transferHistory.IncomingTransfers, domain.DirectTransfer{
-				TargetName: transfer.fromUsername,
-				Amount:     uint32(transfer.amount),
-			})
-		} else {
-			transferHistory.OutcomingTransfers = append(transferHistory.OutcomingTransfers, domain.DirectTransfer{
-				TargetName: transfer.toUsername,
-				Amount:     uint32(transfer.amount),
-			})
-		}
+	transferHistory.IncomingTransfers, err = processRows(incomingRows)
+	if err != nil {
+		return domain.TransferHistory{}, err
 	}
 
 	return transferHistory, nil
+}
+
+func processRows(rows pgx.Rows) ([]domain.DirectTransfer, error) {
+	result := make([]domain.DirectTransfer, 0)
+
+	for rows.Next() {
+		var transfer transaction
+		if err := rows.Scan(&transfer.fromUserID, &transfer.toUserID, &transfer.amount); err != nil {
+			return nil, err
+		}
+
+		result = append(result, domain.DirectTransfer{
+			TargetID: transfer.toUserID,
+			Amount:   uint32(transfer.amount),
+		})
+	}
+
+	return result, nil
 }

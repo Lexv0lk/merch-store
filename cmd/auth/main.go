@@ -39,7 +39,6 @@ func main() {
 
 	authCfg := bootstrap.AuthConfig{
 		DbSettings: databaseSettings,
-		GrpcPort:   grpcPort,
 		SecretKey:  secretKey,
 	}
 

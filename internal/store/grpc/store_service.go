@@ -41,9 +41,9 @@ func NewStoreServerGRPC(
 }
 
 func (s *StoreServerGRPC) GetUserInfo(ctx context.Context, _ *merchapi.GetUserInfoRequest) (*merchapi.GetUserInfoResponse, error) {
-	userID, ok := ctx.Value(userIdContextKey).(int)
-	if !ok {
-		return nil, status.Error(codes.Internal, "user id not found in context")
+	userID, err := retrieveUserID(ctx)
+	if err != nil {
+		return nil, err
 	}
 
 	userInfo, err := s.userInfoCase.GetUserInfo(ctx, userID)
@@ -61,12 +61,12 @@ func (s *StoreServerGRPC) GetUserInfo(ctx context.Context, _ *merchapi.GetUserIn
 }
 
 func (s *StoreServerGRPC) SendCoins(ctx context.Context, req *merchapi.SendCoinsRequest) (*merchapi.SendCoinsResponse, error) {
-	username, ok := ctx.Value(usernameContextKey).(string)
-	if !ok {
-		return nil, status.Error(codes.Internal, "username not found in context")
+	userID, err := retrieveUserID(ctx)
+	if err != nil {
+		return nil, err
 	}
 
-	err := s.sendCoinsCase.SendCoins(ctx, username, req.ToUsername, req.Amount)
+	err = s.sendCoinsCase.SendCoins(ctx, userID, req.ToUsername, req.Amount)
 	if err != nil {
 		s.logger.Error("failed to send coins", "error", err.Error())
 
@@ -87,12 +87,12 @@ func (s *StoreServerGRPC) SendCoins(ctx context.Context, req *merchapi.SendCoins
 }
 
 func (s *StoreServerGRPC) BuyItem(ctx context.Context, req *merchapi.BuyItemRequest) (*merchapi.BuyItemResponse, error) {
-	userID, ok := ctx.Value(userIdContextKey).(int)
-	if !ok {
-		return nil, status.Error(codes.Internal, "user id not found in context")
+	userID, err := retrieveUserID(ctx)
+	if err != nil {
+		return nil, err
 	}
 
-	err := s.purchaseCase.BuyItem(ctx, userID, req.ItemName)
+	err = s.purchaseCase.BuyItem(ctx, userID, req.ItemName)
 	if err != nil {
 		s.logger.Error("failed to purchase item", "error", err.Error())
 
@@ -130,14 +130,14 @@ func convertToUserInfoResponse(userInfo domain.TotalUserInfo) *merchapi.GetUserI
 
 	for _, transfer := range userInfo.CoinTransferHistory.OutcomingTransfers {
 		transferHistory.Sent = append(transferHistory.Sent, &merchapi.SentCoinsInfo{
-			ToUsername: transfer.TargetName,
+			ToUsername: transfer.TargetUsername,
 			Amount:     transfer.Amount,
 		})
 	}
 
 	for _, transfer := range userInfo.CoinTransferHistory.IncomingTransfers {
 		transferHistory.Received = append(transferHistory.Received, &merchapi.ReceivedCoinsInfo{
-			FromUsername: transfer.TargetName,
+			FromUsername: transfer.TargetUsername,
 			Amount:       transfer.Amount,
 		})
 	}
@@ -147,4 +147,13 @@ func convertToUserInfoResponse(userInfo domain.TotalUserInfo) *merchapi.GetUserI
 		Inventory:   inventory,
 		CoinHistory: transferHistory,
 	}
+}
+
+func retrieveUserID(ctx context.Context) (int, error) {
+	userID, ok := ctx.Value(userIdContextKey).(int)
+	if !ok {
+		return 0, status.Error(codes.Internal, "user id not found in context")
+	}
+
+	return userID, nil
 }

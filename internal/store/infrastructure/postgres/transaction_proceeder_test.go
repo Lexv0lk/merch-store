@@ -13,10 +13,10 @@ func TestTransactionProceeder_ProceedTransaction(t *testing.T) {
 	t.Parallel()
 
 	type testCase struct {
-		name     string
-		amount   uint32
-		fromUser *domain.UserInfo
-		toUser   *domain.UserInfo
+		name       string
+		amount     uint32
+		fromUserID int
+		toUserID   int
 
 		expectedErr error
 
@@ -25,10 +25,10 @@ func TestTransactionProceeder_ProceedTransaction(t *testing.T) {
 
 	tests := []testCase{
 		{
-			name:     "successful transaction",
-			amount:   100,
-			fromUser: &domain.UserInfo{Id: 1, Username: "sender", Balance: 500},
-			toUser:   &domain.UserInfo{Id: 2, Username: "receiver", Balance: 200},
+			name:       "successful transaction",
+			amount:     100,
+			fromUserID: 1,
+			toUserID:   2,
 			prepareFn: func(t *testing.T, mock pgxmock.PgxConnIface) {
 				t.Helper()
 				mock.ExpectExec("UPDATE").
@@ -44,10 +44,10 @@ func TestTransactionProceeder_ProceedTransaction(t *testing.T) {
 			expectedErr: nil,
 		},
 		{
-			name:     "insufficient balance on update",
-			amount:   100,
-			fromUser: &domain.UserInfo{Id: 1, Username: "sender", Balance: 50},
-			toUser:   &domain.UserInfo{Id: 2, Username: "receiver", Balance: 200},
+			name:       "insufficient balance on update",
+			amount:     100,
+			fromUserID: 1,
+			toUserID:   2,
 			prepareFn: func(t *testing.T, mock pgxmock.PgxConnIface) {
 				t.Helper()
 				mock.ExpectExec("UPDATE").
@@ -57,10 +57,10 @@ func TestTransactionProceeder_ProceedTransaction(t *testing.T) {
 			expectedErr: &domain.InsufficientBalanceError{},
 		},
 		{
-			name:     "failed to update sender balance",
-			amount:   100,
-			fromUser: &domain.UserInfo{Id: 1, Username: "sender", Balance: 500},
-			toUser:   &domain.UserInfo{Id: 2, Username: "receiver", Balance: 200},
+			name:       "failed to update sender balance",
+			amount:     100,
+			fromUserID: 1,
+			toUserID:   2,
 			prepareFn: func(t *testing.T, mock pgxmock.PgxConnIface) {
 				t.Helper()
 				mock.ExpectExec("UPDATE").
@@ -70,10 +70,10 @@ func TestTransactionProceeder_ProceedTransaction(t *testing.T) {
 			expectedErr: assert.AnError,
 		},
 		{
-			name:     "failed to update receiver balance",
-			amount:   100,
-			fromUser: &domain.UserInfo{Id: 1, Username: "sender", Balance: 500},
-			toUser:   &domain.UserInfo{Id: 2, Username: "receiver", Balance: 200},
+			name:       "failed to update receiver balance",
+			amount:     100,
+			fromUserID: 1,
+			toUserID:   2,
 			prepareFn: func(t *testing.T, mock pgxmock.PgxConnIface) {
 				t.Helper()
 				mock.ExpectExec("UPDATE").
@@ -86,10 +86,10 @@ func TestTransactionProceeder_ProceedTransaction(t *testing.T) {
 			expectedErr: assert.AnError,
 		},
 		{
-			name:     "failed to insert transaction record",
-			amount:   100,
-			fromUser: &domain.UserInfo{Id: 1, Username: "sender", Balance: 500},
-			toUser:   &domain.UserInfo{Id: 2, Username: "receiver", Balance: 200},
+			name:       "failed to insert transaction record",
+			amount:     100,
+			fromUserID: 1,
+			toUserID:   2,
 			prepareFn: func(t *testing.T, mock pgxmock.PgxConnIface) {
 				t.Helper()
 				mock.ExpectExec("UPDATE").
@@ -118,7 +118,7 @@ func TestTransactionProceeder_ProceedTransaction(t *testing.T) {
 			tt.prepareFn(t, mock)
 
 			proceeder := NewTransactionProceeder()
-			err = proceeder.ProceedTransaction(t.Context(), mock, tt.amount, tt.fromUser, tt.toUser)
+			err = proceeder.ProceedTransaction(t.Context(), mock, tt.amount, tt.fromUserID, tt.toUserID)
 
 			if tt.expectedErr != nil {
 				assert.ErrorIs(t, err, tt.expectedErr)

@@ -10,14 +10,24 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-type BalanceLocker struct {
+type BalancesRepository struct {
+	executor database.Executor
 }
 
-func NewBalanceLocker() *BalanceLocker {
-	return &BalanceLocker{}
+func NewBalancesRepository(executor database.Executor) *BalancesRepository {
+	return &BalancesRepository{
+		executor: executor,
+	}
 }
 
-func (bl *BalanceLocker) LockAndGetUserBalance(ctx context.Context, querier database.Querier, userId int) (int, error) {
+func (br *BalancesRepository) EnsureBalanceCreated(ctx context.Context, userId int, startValue uint32) error {
+	sql := `INSERT INTO balances (user_id, balance) VALUES ($1, $2) ON CONFLICT (user_id) DO NOTHING`
+
+	_, err := br.executor.Exec(ctx, sql, userId, startValue)
+	return err
+}
+
+func (br *BalancesRepository) LockAndGetUserBalance(ctx context.Context, querier database.Querier, userId int) (int, error) {
 	lockUserSQL := `SELECT balance FROM balances WHERE user_id = $1 FOR UPDATE`
 
 	var balance int
