@@ -70,15 +70,16 @@ func (s *StoreServerGRPC) SendCoins(ctx context.Context, req *merchapi.SendCoins
 	if err != nil {
 		s.logger.Error("failed to send coins", "error", err.Error())
 
-		if errors.Is(err, &domain.InvalidArgumentsError{}) {
+		switch {
+		case errors.Is(err, &domain.InvalidArgumentsError{}):
 			return nil, status.Error(codes.InvalidArgument, err.Error())
-		} else if errors.Is(err, &domain.UserNotFoundError{}) {
+		case errors.Is(err, &domain.UserNotFoundError{}):
 			return nil, status.Error(codes.NotFound, "user not found")
-		} else if errors.Is(err, &domain.InsufficientBalanceError{}) {
+		case errors.Is(err, &domain.InsufficientBalanceError{}):
 			return nil, status.Error(codes.FailedPrecondition, "insufficient funds")
+		default:
+			return nil, status.Error(codes.Internal, "internal error")
 		}
-
-		return nil, status.Error(codes.Internal, "internal error")
 	}
 
 	return &merchapi.SendCoinsResponse{
@@ -96,15 +97,16 @@ func (s *StoreServerGRPC) BuyItem(ctx context.Context, req *merchapi.BuyItemRequ
 	if err != nil {
 		s.logger.Error("failed to purchase item", "error", err.Error())
 
-		if errors.Is(err, &domain.GoodNotFoundError{}) {
+		switch {
+		case errors.Is(err, &domain.GoodNotFoundError{}):
 			return nil, status.Error(codes.InvalidArgument, "item not found")
-		} else if errors.Is(err, &domain.InsufficientBalanceError{}) {
+		case errors.Is(err, &domain.InsufficientBalanceError{}):
 			return nil, status.Error(codes.FailedPrecondition, "insufficient funds")
-		} else if errors.Is(err, &domain.UserNotFoundError{}) {
+		case errors.Is(err, &domain.UserNotFoundError{}):
 			return nil, status.Error(codes.NotFound, "user not found")
+		default:
+			return nil, status.Error(codes.Internal, "internal error")
 		}
-
-		return nil, status.Error(codes.Internal, "internal error")
 	}
 
 	return &merchapi.BuyItemResponse{

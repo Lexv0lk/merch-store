@@ -18,10 +18,6 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 )
 
-const (
-	networkProtocol = "tcp"
-)
-
 type StoreApp struct {
 	cfg    StoreConfig
 	logger logging.Logger
@@ -67,7 +63,7 @@ func (a *StoreApp) Run(ctx context.Context, grpcLis net.Listener) error {
 	sendCoinsCase := application.NewSendCoinsCase(txManager, authService, balancesRepository, balancesRepository, transactionProceeder)
 	userInfoCase := application.NewUserInfoCase(userInfoRepository, authService, logger)
 
-	server, err := createGRPCServer(
+	server := createGRPCServer(
 		purchaseCase,
 		sendCoinsCase,
 		userInfoCase,
@@ -76,10 +72,6 @@ func (a *StoreApp) Run(ctx context.Context, grpcLis net.Listener) error {
 		a.cfg.JwtSecret,
 		balancesRepository,
 	)
-	if err != nil {
-		return fmt.Errorf("failed to create gRPC server: %w", err)
-	}
-
 	a.server = server
 
 	errChan := make(chan error, 1)
@@ -121,7 +113,7 @@ func createGRPCServer(
 	tokenParser jwt.TokenParser,
 	secretKey string,
 	balanceEnsurer domain.BalanceEnsurer,
-) (*grpc.Server, error) {
+) *grpc.Server {
 	authInterceptorFabric := grpcwrap.NewAuthInterceptorFabric(secretKey, tokenParser, logger)
 	balanceInterceptorFabric := grpcwrap.NewBalanceInterceptorFabric(balanceEnsurer, logger)
 
@@ -133,5 +125,5 @@ func createGRPCServer(
 
 	merchapi.RegisterMerchStoreServiceServer(grpcServer, storeServer)
 
-	return grpcServer, nil
+	return grpcServer
 }

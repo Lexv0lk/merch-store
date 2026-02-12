@@ -16,10 +16,6 @@ import (
 	"google.golang.org/grpc"
 )
 
-const (
-	networkProtocol = "tcp"
-)
-
 type AuthApp struct {
 	cfg    AuthConfig
 	logger logging.Logger

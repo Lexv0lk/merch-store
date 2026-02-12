@@ -92,8 +92,8 @@ func TestAuthServerGRPC_Authenticate(t *testing.T) {
 		},
 	}
 
-	for _, tc := range tests {
-		tt := tc
+	for i := range tests {
+		tt := &tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			authenticator, usersRepo, logger := tt.prepareFn(t, gomock.NewController(t))

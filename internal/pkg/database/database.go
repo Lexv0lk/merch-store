@@ -49,7 +49,7 @@ type PostgresSettings struct {
 // This method does not return any errors; it assumes all fields are properly set.
 func (p *PostgresSettings) GetURL() string {
 	result := "postgres://" + p.User + ":" + p.Password + "@" + p.Host + ":" + p.Port + "/" + p.DBName
-	if p.SSLEnabled == false {
+	if !p.SSLEnabled {
 		result += "?sslmode=disable"
 	}
 

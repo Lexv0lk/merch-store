@@ -2,6 +2,7 @@ package database
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/jackc/pgx/v5"
@@ -32,9 +33,9 @@ func (tm *DelegateTxManager) WithinTransaction(ctx context.Context, txFn TxFunc)
 	}
 
 	defer func() {
-		err := tx.Rollback(ctx)
-		if err != nil && err != pgx.ErrTxClosed {
-			fmt.Printf("failed to rollback transaction: %v\n", err)
+		rollErr := tx.Rollback(ctx)
+		if rollErr != nil && !errors.Is(rollErr, pgx.ErrTxClosed) {
+			fmt.Printf("failed to rollback transaction: %v\n", rollErr)
 		}
 	}()
 

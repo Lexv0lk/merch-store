@@ -75,7 +75,8 @@ func (a *GatewayApp) Run(ctx context.Context, httpLis net.Listener) error {
 	}
 
 	a.server = &http.Server{
-		Handler: router,
+		Handler:           router,
+		ReadHeaderTimeout: 5 * time.Second,
 	}
 
 	errChan := make(chan error, 1)
