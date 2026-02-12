@@ -39,7 +39,7 @@ jobs:
   docker-compose:
     name: Check docker build
     runs-on: ubuntu-latest
-    environment: test
+    environment: tests
 
     needs: test
 
