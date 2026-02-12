@@ -1,0 +1,69 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+
+  test:
+    name: Run tests
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.25.1'
+        
+    - name: Download dependencies
+      run: go mod download
+      
+    - name: Run tests
+      run: go test -coverpkg='github.com/Lexv0lk/merch-store/internal/...,github.com/Lexv0lk/merch-store/tests/...' --race -count=1 -coverprofile='coverage.out' ./...
+      
+    - name: Generate coverage HTML report
+      run: go tool cover -html="coverage.out" -o "coverage.html"
+      
+    - name: Upload coverage report
+      uses: actions/upload-artifact@v6.0.0
+      with:
+        name: coverage-report
+        path: coverage.html
+      
+  docker-compose:
+    name: Check docker build
+    runs-on: ubuntu-latest
+    
+    needs: test
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Install docker-compose
+      run: sudo apt-get update && sudo apt-get install -y docker-compose
+
+    - name: Validate docker-compose
+      run: docker-compose --profile app config --quiet
+
+    - name: Build docker images
+      run: docker-compose build
+      
+    - name: Start services
+      run: docker-compose up -d --profile app
+      
+    - name: Check services health
+      uses: thegabriele97/dockercompose-health-action@v2024.04.19.0
+      with:
+        filename: docker-compose.yml
+        timeout: 60
+        workdir: .
+
+    - name: Stop services
+      run: docker-compose down
