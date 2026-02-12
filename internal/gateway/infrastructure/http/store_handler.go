@@ -27,20 +27,7 @@ func NewStoreHandler(service domain.StoreService) *StoreHandler {
 func (h *StoreHandler) GetInfo(c *gin.Context) {
 	info, err := h.service.GetUserInfo(c)
 	if err != nil {
-		st, ok := status.FromError(err)
-		if ok {
-			switch st.Code() {
-			case codes.Unauthenticated:
-				c.JSON(http.StatusUnauthorized, gin.H{"errors": st.Message()})
-			case codes.NotFound:
-				c.JSON(http.StatusBadRequest, gin.H{"errors": st.Message()})
-			default:
-				c.JSON(http.StatusInternalServerError, gin.H{"errors": "internal server error"})
-			}
-		} else {
-			c.JSON(http.StatusInternalServerError, gin.H{"errors": "internal server error"})
-		}
-
+		handleGRPCError(c, err)
 		return
 	}
 
@@ -57,20 +44,7 @@ func (h *StoreHandler) SendCoin(c *gin.Context) {
 
 	err := h.service.SendCoins(c, body.ToUsername, body.Amount)
 	if err != nil {
-		st, ok := status.FromError(err)
-		if ok {
-			switch st.Code() {
-			case codes.Unauthenticated:
-				c.JSON(http.StatusUnauthorized, gin.H{"errors": st.Message()})
-			case codes.InvalidArgument, codes.FailedPrecondition, codes.NotFound:
-				c.JSON(http.StatusBadRequest, gin.H{"errors": st.Message()})
-			default:
-				c.JSON(http.StatusInternalServerError, gin.H{"errors": "internal server error"})
-			}
-		} else {
-			c.JSON(http.StatusInternalServerError, gin.H{"errors": "internal server error"})
-		}
-
+		handleGRPCError(c, err)
 		return
 	}
 
@@ -82,22 +56,26 @@ func (h *StoreHandler) BuyItem(c *gin.Context) {
 
 	err := h.service.BuyItem(c, itemName)
 	if err != nil {
-		st, ok := status.FromError(err)
-		if ok {
-			switch st.Code() {
-			case codes.Unauthenticated:
-				c.JSON(http.StatusUnauthorized, gin.H{"errors": st.Message()})
-			case codes.InvalidArgument, codes.FailedPrecondition, codes.NotFound:
-				c.JSON(http.StatusBadRequest, gin.H{"errors": st.Message()})
-			default:
-				c.JSON(http.StatusInternalServerError, gin.H{"errors": "internal server error"})
-			}
-		} else {
-			c.JSON(http.StatusInternalServerError, gin.H{"errors": "internal server error"})
-		}
-
+		handleGRPCError(c, err)
 		return
 	}
 
 	c.Status(http.StatusOK)
+}
+
+func handleGRPCError(c *gin.Context, err error) {
+	st, ok := status.FromError(err)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"errors": "internal server error"})
+		return
+	}
+
+	switch st.Code() {
+	case codes.Unauthenticated:
+		c.JSON(http.StatusUnauthorized, gin.H{"errors": st.Message()})
+	case codes.InvalidArgument, codes.FailedPrecondition, codes.NotFound:
+		c.JSON(http.StatusBadRequest, gin.H{"errors": st.Message()})
+	default:
+		c.JSON(http.StatusInternalServerError, gin.H{"errors": "internal server error"})
+	}
 }

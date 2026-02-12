@@ -115,5 +115,9 @@ func processRows(rows pgx.Rows, getTargetIDFn func(tr transaction) int) ([]domai
 		})
 	}
 
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
 	return result, nil
 }

@@ -5,7 +5,6 @@ import (
 	"errors"
 
 	merchapi "github.com/Lexv0lk/merch-store/gen/merch/v1"
-	"github.com/Lexv0lk/merch-store/internal/pkg/jwt"
 	"github.com/Lexv0lk/merch-store/internal/pkg/logging"
 	"github.com/Lexv0lk/merch-store/internal/store/application"
 	"github.com/Lexv0lk/merch-store/internal/store/domain"
@@ -20,8 +19,7 @@ type StoreServerGRPC struct {
 	sendCoinsCase *application.SendCoinsCase
 	userInfoCase  *application.UserInfoCase
 
-	logger      logging.Logger
-	tokenParser jwt.TokenParser
+	logger logging.Logger
 }
 
 func NewStoreServerGRPC(
@@ -29,14 +27,12 @@ func NewStoreServerGRPC(
 	sendCoinsCase *application.SendCoinsCase,
 	userInfoCase *application.UserInfoCase,
 	logger logging.Logger,
-	tokenParser jwt.TokenParser,
 ) *StoreServerGRPC {
 	return &StoreServerGRPC{
 		purchaseCase:  purchaseCase,
 		sendCoinsCase: sendCoinsCase,
 		userInfoCase:  userInfoCase,
 		logger:        logger,
-		tokenParser:   tokenParser,
 	}
 }
 

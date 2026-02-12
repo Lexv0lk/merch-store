@@ -23,9 +23,8 @@ func TestAuthInterceptorFabric_GetInterceptor(t *testing.T) {
 		name      string
 		secretKey string
 
-		expectedUserID   int
-		expectedUsername string
-		expectedErrCode  codes.Code
+		expectedUserID  int
+		expectedErrCode codes.Code
 
 		prepareCtx func(t *testing.T) context.Context
 		prepareFn  func(t *testing.T, ctrl *gomock.Controller) (logging.Logger, jwt.TokenParser)
@@ -49,9 +48,8 @@ func TestAuthInterceptorFabric_GetInterceptor(t *testing.T) {
 					Return(&jwt.Claims{UserID: 1, Username: "testuser"}, nil)
 				return logger, tokenParser
 			},
-			expectedUserID:   1,
-			expectedUsername: "testuser",
-			expectedErrCode:  codes.OK,
+			expectedUserID:  1,
+			expectedErrCode: codes.OK,
 		},
 		{
 			name:      "missing metadata",
@@ -122,11 +120,8 @@ func TestAuthInterceptorFabric_GetInterceptor(t *testing.T) {
 
 				resUser, ok := resultCtx.Value(userIdContextKey).(int)
 				require.True(t, ok)
-				resUsername, ok := resultCtx.Value(usernameContextKey).(string)
-				require.True(t, ok)
 
 				assert.Equal(t, tt.expectedUserID, resUser)
-				assert.Equal(t, tt.expectedUsername, resUsername)
 			}
 		})
 	}

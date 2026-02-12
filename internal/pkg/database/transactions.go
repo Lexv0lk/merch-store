@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/Lexv0lk/merch-store/internal/pkg/logging"
 	"github.com/jackc/pgx/v5"
 )
 
@@ -16,11 +17,13 @@ type TxFunc func(ctx context.Context, executor QueryExecuter) error
 
 type DelegateTxManager struct {
 	txBeginner TxBeginner
+	logger     logging.Logger
 }
 
-func NewDelegateTxManager(txBeginner TxBeginner) *DelegateTxManager {
+func NewDelegateTxManager(txBeginner TxBeginner, logger logging.Logger) *DelegateTxManager {
 	return &DelegateTxManager{
 		txBeginner: txBeginner,
+		logger:     logger,
 	}
 }
 
@@ -35,7 +38,7 @@ func (tm *DelegateTxManager) WithinTransaction(ctx context.Context, txFn TxFunc)
 	defer func() {
 		rollErr := tx.Rollback(ctx)
 		if rollErr != nil && !errors.Is(rollErr, pgx.ErrTxClosed) {
-			fmt.Printf("failed to rollback transaction: %v\n", rollErr)
+			tm.logger.Error("failed to rollback transaction", "error", rollErr)
 		}
 	}()
 

@@ -51,7 +51,7 @@ func (a *StoreApp) Run(ctx context.Context, grpcLis net.Listener) error {
 	authService := grpcwrap.NewAuthAdapter(merchapi.NewAuthServiceClient(grpcAuthConn))
 
 	a.dbpool = dbpool
-	txManager := database.NewDelegateTxManager(dbpool)
+	txManager := database.NewDelegateTxManager(dbpool, logger)
 
 	purchaseHandler := postgres.NewPurchaseHandler()
 	goodsRepository := postgres.NewGoodsRepository(dbpool)
@@ -121,7 +121,7 @@ func createGRPCServer(
 		grpc.ChainUnaryInterceptor(authInterceptorFabric.GetInterceptor(),
 			balanceInterceptorFabric.GetInterceptor()),
 	)
-	storeServer := grpcwrap.NewStoreServerGRPC(purchaseCase, sendCoinsCase, userInfoCase, logger, tokenParser)
+	storeServer := grpcwrap.NewStoreServerGRPC(purchaseCase, sendCoinsCase, userInfoCase, logger)
 
 	merchapi.RegisterMerchStoreServiceServer(grpcServer, storeServer)
 

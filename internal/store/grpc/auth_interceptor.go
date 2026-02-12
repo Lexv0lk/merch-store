@@ -49,7 +49,6 @@ func (i *AuthInterceptorFabric) GetInterceptor() grpc.UnaryServerInterceptor {
 		}
 
 		newCtx := context.WithValue(ctx, userIdContextKey, userClaims.UserID)
-		newCtx = context.WithValue(newCtx, usernameContextKey, userClaims.Username)
 
 		return handler(newCtx, req)
 	}

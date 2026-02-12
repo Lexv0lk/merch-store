@@ -3,7 +3,7 @@
 CREATE TABLE balances (
     id SERIAL PRIMARY KEY,
     user_id INTEGER NOT NULL UNIQUE,
-    balance INTEGER NOT NULL DEFAULT 0
+    balance INTEGER NOT NULL DEFAULT 0 CHECK ( balance >= 0 )
 );
 
 CREATE TABLE goods (

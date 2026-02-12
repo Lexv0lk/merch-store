@@ -35,7 +35,7 @@ func (a *AuthApp) Run(ctx context.Context, grpcLis net.Listener) error {
 	logger := a.logger
 	databaseSettings := a.cfg.DbSettings
 	dbURL := databaseSettings.GetURL()
-	logger.Info(fmt.Sprintf("connecting to %s", dbURL))
+	logger.Info(fmt.Sprintf("connecting to database %s:%s", databaseSettings.Host, databaseSettings.Port))
 
 	dbpool, err := pgxpool.New(ctx, dbURL)
 	if err != nil {
