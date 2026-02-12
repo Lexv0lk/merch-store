@@ -64,7 +64,7 @@ func (a *StoreApp) Run(ctx context.Context, grpcLis net.Listener) error {
 	transactionProceeder := postgres.NewTransactionProceeder()
 
 	purchaseCase := application.NewPurchaseCase(goodsRepository, balancesRepository, purchaseHandler, txManager)
-	sendCoinsCase := application.NewSendCoinsCase(txManager, authService, userInfoRepository, balancesRepository, transactionProceeder)
+	sendCoinsCase := application.NewSendCoinsCase(txManager, authService, balancesRepository, balancesRepository, transactionProceeder)
 	userInfoCase := application.NewUserInfoCase(userInfoRepository, authService, logger)
 
 	server, err := createGRPCServer(

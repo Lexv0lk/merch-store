@@ -12,20 +12,20 @@ type SendCoinsCase struct {
 	txManager            database.TxManager
 	userIDFetcher        domain.UserIDFetcher
 	transactionProceeder domain.TransactionProceeder
-	userBalanceFetcher   domain.UserBalanceFetcher
+	balanceLocker        domain.UserBalanceLocker
 	balanceCreator       domain.BalanceEnsurer
 }
 
 func NewSendCoinsCase(txManager database.TxManager,
 	userIDFetcher domain.UserIDFetcher,
-	userBalanceFetcher domain.UserBalanceFetcher,
+	balanceLocker domain.UserBalanceLocker,
 	balanceCreator domain.BalanceEnsurer,
 	transactionProceeder domain.TransactionProceeder) *SendCoinsCase {
 	return &SendCoinsCase{
 		txManager:            txManager,
 		userIDFetcher:        userIDFetcher,
 		transactionProceeder: transactionProceeder,
-		userBalanceFetcher:   userBalanceFetcher,
+		balanceLocker:        balanceLocker,
 		balanceCreator:       balanceCreator,
 	}
 }
@@ -46,7 +46,10 @@ func (sc *SendCoinsCase) SendCoins(ctx context.Context, fromUserID int, toUserna
 	}
 
 	return sc.txManager.WithinTransaction(ctx, func(ctx context.Context, executor database.QueryExecuter) error {
-		fromUserBalance, err := sc.userBalanceFetcher.FetchUserBalance(ctx, fromUserID)
+		fromUserBalance, err := sc.balanceLocker.LockAndGetUserBalance(ctx, executor, fromUserID)
+		if err != nil {
+			return fmt.Errorf("failed to lock and get balance for user %d: %w", fromUserID, err)
+		}
 
 		if fromUserBalance < amount {
 			return &domain.InsufficientBalanceError{Msg: fmt.Sprintf("user %d has insufficient balance", fromUserID)}

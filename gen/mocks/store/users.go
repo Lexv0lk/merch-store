@@ -74,10 +74,10 @@ func (m *MockUserBalanceLocker) EXPECT() *MockUserBalanceLockerMockRecorder {
 }
 
 // LockAndGetUserBalance mocks base method.
-func (m *MockUserBalanceLocker) LockAndGetUserBalance(ctx context.Context, querier database.Querier, userId int) (int, error) {
+func (m *MockUserBalanceLocker) LockAndGetUserBalance(ctx context.Context, querier database.Querier, userId int) (uint32, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "LockAndGetUserBalance", ctx, querier, userId)
-	ret0, _ := ret[0].(int)
+	ret0, _ := ret[0].(uint32)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

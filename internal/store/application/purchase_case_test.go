@@ -48,7 +48,7 @@ func TestPurchaseCase_BuyItem(t *testing.T) {
 				d.txManager.EXPECT().WithinTransaction(gomock.Any(), gomock.Any()).
 					DoAndReturn(executeTxFn)
 				d.balanceLocker.EXPECT().LockAndGetUserBalance(gomock.Any(), nil, 1).
-					Return(100, nil)
+					Return(uint32(100), nil)
 				d.purchaser.EXPECT().ProcessPurchase(gomock.Any(), nil, 1, domain.GoodInfo{Id: 10, Name: "t-shirt", Price: 80}).
 					Return(nil)
 			},
@@ -74,7 +74,7 @@ func TestPurchaseCase_BuyItem(t *testing.T) {
 				d.txManager.EXPECT().WithinTransaction(gomock.Any(), gomock.Any()).
 					DoAndReturn(executeTxFn)
 				d.balanceLocker.EXPECT().LockAndGetUserBalance(gomock.Any(), nil, 999).
-					Return(0, &domain.UserNotFoundError{Msg: "user not found"})
+					Return(uint32(0), &domain.UserNotFoundError{Msg: "user not found"})
 			},
 			expectedErr: &domain.UserNotFoundError{},
 		},
@@ -88,7 +88,7 @@ func TestPurchaseCase_BuyItem(t *testing.T) {
 				d.txManager.EXPECT().WithinTransaction(gomock.Any(), gomock.Any()).
 					DoAndReturn(executeTxFn)
 				d.balanceLocker.EXPECT().LockAndGetUserBalance(gomock.Any(), nil, 1).
-					Return(50, nil)
+					Return(uint32(50), nil)
 			},
 			expectedErr: &domain.InsufficientBalanceError{},
 		},
@@ -102,7 +102,7 @@ func TestPurchaseCase_BuyItem(t *testing.T) {
 				d.txManager.EXPECT().WithinTransaction(gomock.Any(), gomock.Any()).
 					DoAndReturn(executeTxFn)
 				d.balanceLocker.EXPECT().LockAndGetUserBalance(gomock.Any(), nil, 1).
-					Return(100, nil)
+					Return(uint32(100), nil)
 				d.purchaser.EXPECT().ProcessPurchase(gomock.Any(), nil, 1, domain.GoodInfo{Id: 10, Name: "t-shirt", Price: 80}).
 					Return(assert.AnError)
 			},

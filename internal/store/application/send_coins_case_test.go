@@ -18,7 +18,7 @@ func TestSendCoinsCase_SendCoins(t *testing.T) {
 	type deps struct {
 		txManager            *dbmocks.MockTxManager
 		userIDFetcher        *storemocks.MockUserIDFetcher
-		userBalanceFetcher   *storemocks.MockUserBalanceFetcher
+		balanceLocker        *storemocks.MockUserBalanceLocker
 		balanceCreator       *storemocks.MockBalanceEnsurer
 		transactionProceeder *storemocks.MockTransactionProceeder
 	}
@@ -51,7 +51,7 @@ func TestSendCoinsCase_SendCoins(t *testing.T) {
 					Return(nil)
 				d.txManager.EXPECT().WithinTransaction(gomock.Any(), gomock.Any()).
 					DoAndReturn(executeTxFn)
-				d.userBalanceFetcher.EXPECT().FetchUserBalance(gomock.Any(), 1).
+				d.balanceLocker.EXPECT().LockAndGetUserBalance(gomock.Any(), nil, 1).
 					Return(uint32(500), nil)
 				d.transactionProceeder.EXPECT().ProceedTransaction(gomock.Any(), nil, uint32(100), 1, 2).
 					Return(nil)
@@ -81,7 +81,7 @@ func TestSendCoinsCase_SendCoins(t *testing.T) {
 					Return(nil)
 				d.txManager.EXPECT().WithinTransaction(gomock.Any(), gomock.Any()).
 					DoAndReturn(executeTxFn)
-				d.userBalanceFetcher.EXPECT().FetchUserBalance(gomock.Any(), 1).
+				d.balanceLocker.EXPECT().LockAndGetUserBalance(gomock.Any(), nil, 1).
 					Return(uint32(500), nil)
 			},
 			expectedErr: &domain.InsufficientBalanceError{},
@@ -109,7 +109,7 @@ func TestSendCoinsCase_SendCoins(t *testing.T) {
 					Return(nil)
 				d.txManager.EXPECT().WithinTransaction(gomock.Any(), gomock.Any()).
 					DoAndReturn(executeTxFn)
-				d.userBalanceFetcher.EXPECT().FetchUserBalance(gomock.Any(), 1).
+				d.balanceLocker.EXPECT().LockAndGetUserBalance(gomock.Any(), nil, 1).
 					Return(uint32(500), nil)
 				d.transactionProceeder.EXPECT().ProceedTransaction(gomock.Any(), nil, uint32(100), 1, 2).
 					Return(assert.AnError)
@@ -141,14 +141,14 @@ func TestSendCoinsCase_SendCoins(t *testing.T) {
 			d := &deps{
 				txManager:            dbmocks.NewMockTxManager(ctrl),
 				userIDFetcher:        storemocks.NewMockUserIDFetcher(ctrl),
-				userBalanceFetcher:   storemocks.NewMockUserBalanceFetcher(ctrl),
+				balanceLocker:        storemocks.NewMockUserBalanceLocker(ctrl),
 				balanceCreator:       storemocks.NewMockBalanceEnsurer(ctrl),
 				transactionProceeder: storemocks.NewMockTransactionProceeder(ctrl),
 			}
 
 			tt.prepareFn(t, d)
 
-			sendCoinsCase := NewSendCoinsCase(d.txManager, d.userIDFetcher, d.userBalanceFetcher, d.balanceCreator, d.transactionProceeder)
+			sendCoinsCase := NewSendCoinsCase(d.txManager, d.userIDFetcher, d.balanceLocker, d.balanceCreator, d.transactionProceeder)
 			err := sendCoinsCase.SendCoins(t.Context(), tt.fromUserID, tt.toUsername, tt.amount)
 
 			if tt.expectedErr != nil {

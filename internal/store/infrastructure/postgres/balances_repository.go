@@ -27,10 +27,10 @@ func (br *BalancesRepository) EnsureBalanceCreated(ctx context.Context, userId i
 	return err
 }
 
-func (br *BalancesRepository) LockAndGetUserBalance(ctx context.Context, querier database.Querier, userId int) (int, error) {
+func (br *BalancesRepository) LockAndGetUserBalance(ctx context.Context, querier database.Querier, userId int) (uint32, error) {
 	lockUserSQL := `SELECT balance FROM balances WHERE user_id = $1 FOR UPDATE`
 
-	var balance int
+	var balance uint32
 	err := querier.QueryRow(ctx, lockUserSQL, userId).Scan(&balance)
 
 	if err != nil {

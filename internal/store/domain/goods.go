@@ -11,5 +11,5 @@ type GoodsRepository interface {
 type GoodInfo struct {
 	Id    int
 	Name  string
-	Price int
+	Price uint32
 }

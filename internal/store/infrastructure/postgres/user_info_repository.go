@@ -46,12 +46,6 @@ func (uif *UserInfoRepository) FetchUserBalance(ctx context.Context, userId int)
 }
 
 func (uif *UserInfoRepository) FetchUserPurchases(ctx context.Context, userId int) (map[domain.Good]uint32, error) {
-	defer func() {
-		if r := recover(); r != nil {
-			uif.logger.Error("panic recovered in FetchUserPurchases", "error", r)
-		}
-	}()
-
 	sql := `SELECT g.name, COUNT(*) FROM purchases p
 			JOIN goods g ON p.good_id = g.id
 			WHERE p.user_id = $1

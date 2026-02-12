@@ -29,11 +29,11 @@ func main() {
 		SSLEnabled: false,
 	}
 
-	grpcAuthProt := ":9090"
+	grpcAuthPort := ":9090"
 	grpcAuthHost := "localhost"
 
 	env.TrySetFromEnv(env.EnvGrpcStorePort, &grpcPort)
-	env.TrySetFromEnv(env.EnvGrpcAuthPort, &grpcAuthProt)
+	env.TrySetFromEnv(env.EnvGrpcAuthPort, &grpcAuthPort)
 	env.TrySetFromEnv(env.EnvGrpcAuthHost, &grpcAuthHost)
 	env.TrySetFromEnv(env.EnvStoreDatabaseUser, &databaseSettings.User)
 	env.TrySetFromEnv(env.EnvStoreDatabasePassword, &databaseSettings.Password)
@@ -45,7 +45,7 @@ func main() {
 	cfg := bootstrap.StoreConfig{
 		JwtSecret:    secretKey,
 		DbSettings:   databaseSettings,
-		GrpcAuthPort: grpcAuthProt,
+		GrpcAuthPort: grpcAuthPort,
 		GrpcAuthHost: grpcAuthHost,
 	}
 

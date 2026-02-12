@@ -13,11 +13,11 @@ type BalanceEnsurer interface {
 }
 
 type UserBalanceLocker interface {
-	LockAndGetUserBalance(ctx context.Context, querier database.Querier, userId int) (int, error)
+	LockAndGetUserBalance(ctx context.Context, querier database.Querier, userId int) (uint32, error)
 }
 
 type UserInfoRepository interface {
-	UserBalanceFetcher
+	FetchUserBalance(ctx context.Context, userId int) (uint32, error)
 	FetchUserPurchases(ctx context.Context, userId int) (map[Good]uint32, error)
 	FetchUserCoinTransfers(ctx context.Context, userId int) (TransferHistory, error)
 }
@@ -29,10 +29,6 @@ type UsernameGetter interface {
 
 type UserIDFetcher interface {
 	FetchUserID(ctx context.Context, username string) (int, error)
-}
-
-type UserBalanceFetcher interface {
-	FetchUserBalance(ctx context.Context, userId int) (uint32, error)
 }
 
 type UserInfo struct {
