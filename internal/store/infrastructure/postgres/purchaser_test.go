@@ -30,7 +30,7 @@ func TestPurchaseHandler_ProcessPurchase(t *testing.T) {
 			prepareFn: func(t *testing.T, mock pgxmock.PgxConnIface) {
 				t.Helper()
 				mock.ExpectExec("UPDATE").
-					WithArgs(20, 1).
+					WithArgs(uint32(20), 1).
 					WillReturnResult(pgxmock.NewResult("UPDATE", 1))
 				mock.ExpectExec("INSERT").
 					WithArgs(1, 10).
@@ -45,7 +45,7 @@ func TestPurchaseHandler_ProcessPurchase(t *testing.T) {
 			prepareFn: func(t *testing.T, mock pgxmock.PgxConnIface) {
 				t.Helper()
 				mock.ExpectExec("UPDATE").
-					WithArgs(20, 1).
+					WithArgs(uint32(20), 1).
 					WillReturnError(assert.AnError)
 			},
 			expectedErr: assert.AnError,
@@ -57,7 +57,7 @@ func TestPurchaseHandler_ProcessPurchase(t *testing.T) {
 			prepareFn: func(t *testing.T, mock pgxmock.PgxConnIface) {
 				t.Helper()
 				mock.ExpectExec("UPDATE").
-					WithArgs(20, 1).
+					WithArgs(uint32(20), 1).
 					WillReturnResult(pgxmock.NewResult("UPDATE", 1))
 				mock.ExpectExec("INSERT").
 					WithArgs(1, 10).

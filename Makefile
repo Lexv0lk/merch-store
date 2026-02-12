@@ -16,7 +16,7 @@ infra-up:
 ## test: run all tests
 .PHONY: test
 test:
-	@go test -coverpkg='./internal/...' --race -count=1 -coverprofile='$(COVERAGE_FILE)' ./...
+	@go test -coverpkg='github.com/Lexv0lk/merch-store/internal/...,github.com/Lexv0lk/merch-store/tests/...' --race -count=1 -coverprofile='$(COVERAGE_FILE)' ./...
 	@go tool cover -func='$(COVERAGE_FILE)' | grep ^total | tr -s '\t'
 
 .PHONY: migrate-up

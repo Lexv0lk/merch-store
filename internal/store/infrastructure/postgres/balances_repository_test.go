@@ -93,7 +93,7 @@ func TestBalancesRepository_LockAndGetUserBalance(t *testing.T) {
 
 		prepareFn func(t *testing.T, mock pgxmock.PgxConnIface)
 
-		expectedBalance int
+		expectedBalance uint32
 		expectedErr     error
 	}
 
