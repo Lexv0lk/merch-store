@@ -11,7 +11,7 @@ jobs:
   test:
     name: Run tests
     runs-on: ubuntu-latest
-    
+
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
@@ -39,12 +39,22 @@ jobs:
   docker-compose:
     name: Check docker build
     runs-on: ubuntu-latest
-    
+    environment: test
+
     needs: test
-    
+
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
+
+    - name: Create .env from .env.example
+      run: |
+        cp .env.example .env
+        sed -i 's/^DB_AUTH_USER=$/DB_AUTH_USER=${{ secrets.DB_AUTH_USER }}/' .env
+        sed -i 's/^DB_AUTH_PASSWORD=$/DB_AUTH_PASSWORD=${{ secrets.DB_AUTH_PASSWORD }}/' .env
+        sed -i 's/^DB_STORE_USER=$/DB_STORE_USER=${{ secrets.DB_STORE_USER }}/' .env
+        sed -i 's/^DB_STORE_PASSWORD=$/DB_STORE_PASSWORD=${{ secrets.DB_STORE_PASSWORD }}/' .env
+        sed -i 's/^JWT_SECRET=$/JWT_SECRET=${{ secrets.JWT_SECRET }}/' .env
 
     - name: Install docker-compose
       run: sudo apt-get update && sudo apt-get install -y docker-compose

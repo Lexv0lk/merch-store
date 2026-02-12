@@ -1,5 +1,4 @@
 COVERAGE_FILE ?= coverage.out
-DB_DSN ?= "postgres://admin:password@localhost:5433/merch_store_db?sslmode=disable"
 
 .PHONY: build-app-up
 build-app-up:
@@ -18,15 +17,3 @@ infra-up:
 test:
 	@go test -coverpkg='github.com/Lexv0lk/merch-store/internal/...,github.com/Lexv0lk/merch-store/tests/...' --race -count=1 -coverprofile='$(COVERAGE_FILE)' ./...
 	@go tool cover -func='$(COVERAGE_FILE)' | grep ^total | tr -s '\t'
-
-.PHONY: migrate-up
-migrate-up:
-	@goose -dir migrations postgres ${DB_DSN} up
-
-.PHONY: migrate-down
-migrate-down:
-	@goose -dir migrations postgres ${DB_DSN} down
-
-.PHONY: migrate-status
-migrate-status:
-	@goose -dir migrations postgres ${DB_DSN} status

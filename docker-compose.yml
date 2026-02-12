@@ -1,4 +1,4 @@
-﻿services:
+services:
   gateway:
     container_name: gateway
     build:
@@ -56,7 +56,7 @@
     profiles: ["app", "infra"]
     networks:
       - merch-net
-    command: /bin/goose postgres "postgres://auth_admin:auth_password@postgres-auth:5432/merch_auth_db?sslmode=disable" up
+    command: /bin/goose postgres "postgres://${DB_AUTH_USER}:${DB_AUTH_PASSWORD}@postgres-auth:5432/${DB_AUTH_NAME}?sslmode=disable" up
     depends_on:
       postgres-auth:
         condition: service_healthy
@@ -68,7 +68,7 @@
     profiles: [ "app", "infra" ]
     networks:
       - merch-net
-    command: /bin/goose postgres "postgres://store_admin:store_password@postgres-store:5432/merch_store_db?sslmode=disable" up
+    command: /bin/goose postgres "postgres://${DB_STORE_USER}:${DB_STORE_PASSWORD}@postgres-store:5432/${DB_STORE_NAME}?sslmode=disable" up
     depends_on:
       postgres-store:
         condition: service_healthy
@@ -77,9 +77,9 @@
     image: "postgres:16-alpine"
     profiles: ["app", "infra"]
     environment:
-      POSTGRES_USER: auth_admin
-      POSTGRES_PASSWORD: auth_password
-      POSTGRES_DB: merch_auth_db
+      POSTGRES_USER: ${DB_AUTH_USER}
+      POSTGRES_PASSWORD: ${DB_AUTH_PASSWORD}
+      POSTGRES_DB: ${DB_AUTH_NAME}
     ports:
       - "5433:5432"
     volumes:
@@ -87,7 +87,7 @@
     networks:
       - merch-net
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U auth_admin -d merch_auth_db"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_AUTH_USER} -d ${DB_AUTH_NAME}"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -97,9 +97,9 @@
     image: "postgres:16-alpine"
     profiles: [ "app", "infra" ]
     environment:
-      POSTGRES_USER: store_admin
-      POSTGRES_PASSWORD: store_password
-      POSTGRES_DB: merch_store_db
+      POSTGRES_USER: ${DB_STORE_USER}
+      POSTGRES_PASSWORD: ${DB_STORE_PASSWORD}
+      POSTGRES_DB: ${DB_STORE_NAME}
     ports:
       - "5434:5432"
     volumes:
@@ -107,7 +107,7 @@
     networks:
       - merch-net
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U store_admin -d merch_store_db" ]
+      test: [ "CMD-SHELL", "pg_isready -U ${DB_STORE_USER} -d ${DB_STORE_NAME}" ]
       interval: 5s
       timeout: 5s
       retries: 10
