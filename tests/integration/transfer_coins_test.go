@@ -5,19 +5,17 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log/slog"
 	"net/http"
-	"os"
 	"testing"
 	"time"
 
 	gateway "github.com/Lexv0lk/merch-store/internal/gateway/domain"
 	"github.com/Lexv0lk/merch-store/internal/pkg/database"
+	"github.com/Lexv0lk/merch-store/internal/pkg/logging"
 	store "github.com/Lexv0lk/merch-store/internal/store/domain"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/testcontainers/testcontainers-go/modules/postgres"
 )
 
 const (
@@ -28,20 +26,45 @@ func TestTransferCoinsScenario(t *testing.T) {
 	t.Parallel()
 	iterations := 3
 
-	nopLogger := slog.New(slog.NewTextHandler(os.Stdout, nil))
+	nopLogger := logging.NopLogger
 	gin.SetMode(gin.TestMode)
 
 	for i := 0; i < iterations; i++ {
 		t.Run(fmt.Sprintf("iteration %d", i+1), func(t *testing.T) {
 			t.Parallel()
 
-			pg := setupDatabase(t)
+			auth_pg := setupDatabase(t, "merch_auth_db", "auth_user", "auth_pass", "../../migrations/auth")
+			store_pg := setupDatabase(t, "merch_store_db", "store_user", "store_pass", "../../migrations/store")
 
-			dbSettings := getDefaultDBSettings()
-			setDBSettingsFromContainer(t, pg, &dbSettings)
+			dbAuthSettings := database.PostgresSettings{
+				User:       "auth_user",
+				Password:   "auth_pass",
+				DBName:     "merch_auth_db",
+				SSLEnabled: false,
+			}
+			dbStoreSettings := database.PostgresSettings{
+				User:       "store_user",
+				Password:   "store_pass",
+				DBName:     "merch_store_db",
+				SSLEnabled: false,
+			}
 
-			authPort := runAuthService(t, dbSettings, nopLogger)
-			storePort := runStoreService(t, dbSettings, nopLogger)
+			dbAuthHost, err := auth_pg.Host(t.Context())
+			require.NoError(t, err)
+			dbAuthPort, err := auth_pg.MappedPort(t.Context(), "5432/tcp")
+			require.NoError(t, err)
+			dbAuthSettings.Host = dbAuthHost
+			dbAuthSettings.Port = dbAuthPort.Port()
+
+			dbStoreHost, err := store_pg.Host(t.Context())
+			require.NoError(t, err)
+			dbStorePort, err := store_pg.MappedPort(t.Context(), "5432/tcp")
+			require.NoError(t, err)
+			dbStoreSettings.Host = dbStoreHost
+			dbStoreSettings.Port = dbStorePort.Port()
+
+			authPort := runAuthService(t, dbAuthSettings, nopLogger)
+			storePort := runStoreService(t, dbStoreSettings, "localhost", authPort, nopLogger)
 			httpPort := runGatewayService(t, authPort, storePort, nopLogger)
 
 			waitForGateway(t.Context(), t, httpPort, 10*time.Second)
@@ -135,23 +158,4 @@ func proceedCoinTransfer(t *testing.T, port, token, toUser string, amount uint32
 
 	err = resp.Body.Close()
 	require.NoError(t, err)
-}
-
-func getDefaultDBSettings() database.PostgresSettings {
-	return database.PostgresSettings{
-		User:       "admin",
-		Password:   "password",
-		DBName:     "merch_store_db",
-		SSLEnabled: false,
-	}
-}
-
-func setDBSettingsFromContainer(t *testing.T, pg *postgres.PostgresContainer, dbSettings *database.PostgresSettings) {
-	dbHost, err := pg.Host(t.Context())
-	require.NoError(t, err)
-	dbPort, err := pg.MappedPort(t.Context(), "5432/tcp")
-	require.NoError(t, err)
-
-	dbSettings.Host = dbHost
-	dbSettings.Port = dbPort.Port()
 }

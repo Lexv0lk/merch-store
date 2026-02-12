@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log/slog"
 	"net"
 	"net/http"
 	"time"
@@ -45,33 +44,45 @@ func TestPurchaseScenario(t *testing.T) {
 	t.Parallel()
 	iterations := 3
 
-	nopLogger := slog.New(slog.NewTextHandler(io.Discard, nil))
-	//nopLogger := logging.StdoutLogger
+	nopLogger := logging.NopLogger
 	gin.SetMode(gin.TestMode)
 
 	for i := 0; i < iterations; i++ {
 		t.Run(fmt.Sprintf("iteration %d", i+1), func(t *testing.T) {
 			t.Parallel()
 
-			pg := setupDatabase(t)
+			auth_pg := setupDatabase(t, "merch_auth_db", "auth_user", "auth_pass", "../../migrations/auth")
+			store_pg := setupDatabase(t, "merch_store_db", "store_user", "store_pass", "../../migrations/store")
 
-			dbSettings := database.PostgresSettings{
-				User:       "admin",
-				Password:   "password",
+			dbAuthSettings := database.PostgresSettings{
+				User:       "auth_user",
+				Password:   "auth_pass",
+				DBName:     "merch_auth_db",
+				SSLEnabled: false,
+			}
+			dbStoreSettings := database.PostgresSettings{
+				User:       "store_user",
+				Password:   "store_pass",
 				DBName:     "merch_store_db",
 				SSLEnabled: false,
 			}
 
-			dbHost, err := pg.Host(t.Context())
+			dbAuthHost, err := auth_pg.Host(t.Context())
 			require.NoError(t, err)
-			dbPort, err := pg.MappedPort(t.Context(), "5432/tcp")
+			dbAuthPort, err := auth_pg.MappedPort(t.Context(), "5432/tcp")
 			require.NoError(t, err)
+			dbAuthSettings.Host = dbAuthHost
+			dbAuthSettings.Port = dbAuthPort.Port()
 
-			dbSettings.Host = dbHost
-			dbSettings.Port = dbPort.Port()
+			dbStoreHost, err := store_pg.Host(t.Context())
+			require.NoError(t, err)
+			dbStorePort, err := store_pg.MappedPort(t.Context(), "5432/tcp")
+			require.NoError(t, err)
+			dbStoreSettings.Host = dbStoreHost
+			dbStoreSettings.Port = dbStorePort.Port()
 
-			authPort := runAuthService(t, dbSettings, nopLogger)
-			storePort := runStoreService(t, dbSettings, nopLogger)
+			authPort := runAuthService(t, dbAuthSettings, nopLogger)
+			storePort := runStoreService(t, dbStoreSettings, "localhost", authPort, nopLogger)
 			httpPort := runGatewayService(t, authPort, storePort, nopLogger)
 
 			waitForGateway(t.Context(), t, httpPort, 10*time.Second)
@@ -123,13 +134,13 @@ func waitForGateway(ctx context.Context, t *testing.T, httpPort string, timeout 
 	}
 }
 
-func setupDatabase(t *testing.T) *postgres.PostgresContainer {
+func setupDatabase(t *testing.T, dbName, user, password, migrationsRelativePath string) *postgres.PostgresContainer {
 	pg, err := postgres.Run(
 		t.Context(),
 		"postgres:16-alpine",
-		postgres.WithDatabase("merch_store_db"),
-		postgres.WithUsername("admin"),
-		postgres.WithPassword("password"),
+		postgres.WithDatabase(dbName),
+		postgres.WithUsername(user),
+		postgres.WithPassword(password),
 	)
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = pg.Terminate(t.Context()) })
@@ -149,9 +160,7 @@ func setupDatabase(t *testing.T) *postgres.PostgresContainer {
 
 	//up migrations
 	goose.SetDialect("postgres")
-	err = goose.Up(db, "../../migrations/auth")
-	require.NoError(t, err)
-	err = goose.Up(db, "../../migrations/store")
+	err = goose.Up(db, migrationsRelativePath)
 	require.NoError(t, err)
 
 	return pg
@@ -179,14 +188,16 @@ func runAuthService(t *testing.T, dbSettings database.PostgresSettings, logger l
 	return fmt.Sprintf(":%d", lis.Addr().(*net.TCPAddr).Port)
 }
 
-func runStoreService(t *testing.T, dbSettings database.PostgresSettings, logger logging.Logger) string {
+func runStoreService(t *testing.T, dbSettings database.PostgresSettings, authHost, authPort string, logger logging.Logger) string {
 	lis, err := net.Listen("tcp", ":0")
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = lis.Close() })
 
 	storeConfig := storeboot.StoreConfig{
-		DbSettings: dbSettings,
-		JwtSecret:  "secret-key",
+		DbSettings:   dbSettings,
+		JwtSecret:    "secret-key",
+		GrpcAuthHost: authHost,
+		GrpcAuthPort: authPort,
 	}
 	storeApp := storeboot.NewStoreApp(storeConfig, logger)
 

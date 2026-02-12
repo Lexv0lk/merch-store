@@ -206,7 +206,7 @@ func TestUserInfoRepository_FetchUserCoinTransfers(t *testing.T) {
 					{TargetID: 2, Amount: 100},
 				},
 				IncomingTransfers: []domain.DirectTransfer{
-					{TargetID: 1, Amount: 50},
+					{TargetID: 3, Amount: 50},
 				},
 			},
 			expectedErr: nil,
@@ -232,8 +232,8 @@ func TestUserInfoRepository_FetchUserCoinTransfers(t *testing.T) {
 			expectedHistory: domain.TransferHistory{
 				OutcomingTransfers: []domain.DirectTransfer{},
 				IncomingTransfers: []domain.DirectTransfer{
-					{TargetID: 1, Amount: 50},
-					{TargetID: 1, Amount: 75},
+					{TargetID: 3, Amount: 50},
+					{TargetID: 4, Amount: 75},
 				},
 			},
 			expectedErr: nil,

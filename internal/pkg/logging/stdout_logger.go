@@ -1,6 +1,7 @@
 package logging
 
 import (
+	"io"
 	"log/slog"
 	"os"
 )
@@ -12,3 +13,4 @@ type Logger interface {
 }
 
 var StdoutLogger = slog.New(slog.NewTextHandler(os.Stdout, nil))
+var NopLogger = slog.New(slog.NewTextHandler(io.Discard, nil))

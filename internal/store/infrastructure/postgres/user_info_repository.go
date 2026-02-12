@@ -93,12 +93,12 @@ func (uif *UserInfoRepository) FetchUserCoinTransfers(ctx context.Context, userI
 
 	transferHistory := domain.TransferHistory{}
 
-	transferHistory.OutcomingTransfers, err = processRows(outcomingRows)
+	transferHistory.OutcomingTransfers, err = processRows(outcomingRows, func(tr transaction) int { return tr.toUserID })
 	if err != nil {
 		return domain.TransferHistory{}, err
 	}
 
-	transferHistory.IncomingTransfers, err = processRows(incomingRows)
+	transferHistory.IncomingTransfers, err = processRows(incomingRows, func(tr transaction) int { return tr.fromUserID })
 	if err != nil {
 		return domain.TransferHistory{}, err
 	}
@@ -106,7 +106,7 @@ func (uif *UserInfoRepository) FetchUserCoinTransfers(ctx context.Context, userI
 	return transferHistory, nil
 }
 
-func processRows(rows pgx.Rows) ([]domain.DirectTransfer, error) {
+func processRows(rows pgx.Rows, getTargetIDFn func(tr transaction) int) ([]domain.DirectTransfer, error) {
 	result := make([]domain.DirectTransfer, 0)
 
 	for rows.Next() {
@@ -116,7 +116,7 @@ func processRows(rows pgx.Rows) ([]domain.DirectTransfer, error) {
 		}
 
 		result = append(result, domain.DirectTransfer{
-			TargetID: transfer.toUserID,
+			TargetID: getTargetIDFn(transfer),
 			Amount:   uint32(transfer.amount),
 		})
 	}
