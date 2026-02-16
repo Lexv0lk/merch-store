@@ -22,14 +22,13 @@ spec:
               done
       containers:
         - name: goose
-          image: gomicro/goose
-          imagePullPolicy: IfNotPresent
+          image: merch-migrator:latest
+          imagePullPolicy: Never
           workingDir: /migrations/auth
           command:
-            - /bin/goose
-            - postgres
-            - "postgres://${DB_AUTH_USER}:${DB_AUTH_PASSWORD}@postgres-auth:5432/${DB_AUTH_NAME}?sslmode=disable"
-            - up
+            - sh
+            - -c
+            - /bin/goose postgres "postgres://${DB_AUTH_USER}:${DB_AUTH_PASSWORD}@postgres-auth:5432/${DB_AUTH_NAME}?sslmode=disable" up
           env:
             - name: DB_AUTH_USER
               valueFrom:

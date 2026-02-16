@@ -56,6 +56,10 @@ func (a *GatewayApp) Run(ctx context.Context, httpLis net.Listener) error {
 
 	router := gin.Default()
 
+	router.GET("/healthz", func(c *gin.Context) {
+		c.Status(http.StatusOK)
+	})
+
 	authService := grpcwrap.NewAuthAdapter(merchapi.NewAuthServiceClient(grpcAuthConn))
 	authHandler := httpwrap.NewAuthHandler(authService)
 

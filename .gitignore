@@ -32,4 +32,4 @@ go.work.sum
 # .vscode/
 
 # K8S
-#k8s/secrets.yaml
+k8s/secrets.yaml
