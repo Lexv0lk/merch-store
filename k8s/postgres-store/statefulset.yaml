@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres-store
+  namespace: merch-store
+spec:
+  serviceName: postgres-store
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres-store
+  template:
+    metadata:
+      labels:
+        app: postgres-store
+    spec:
+      containers:
+        - name: postgre
+          image: postgres:16-alpine
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: merch-secrets
+                  key: DB_STORE_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: merch-secrets
+                  key: DB_STORE_PASSWORD
+            - name: POSTGRES_DB
+              valueFrom:
+                configMapKeyRef:
+                  name: merch-config
+                  key: DB_STORE_NAME
+          volumeMounts:
+            - name: postgres-store-storage
+              mountPath: /var/lib/postgresql/data
+          livenessProbe:
+            exec:
+              command: ["pg_isready", "-U", "$(POSTGRES_USER)"]
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          readinessProbe:
+            exec:
+              command: ["pg_isready", "-U", "$(POSTGRES_USER)"]
+            initialDelaySeconds: 5
+            periodSeconds: 10
+      volumes:
+        - name: postgres-store-storage
+          persistentVolumeClaim:
+            claimName: postgres-store-pvc

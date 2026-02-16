@@ -1,0 +1,48 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: auth-migrator
+  namespace: merch-store
+spec:
+  backoffLimit: 5
+  ttlSecondsAfterFinished: 300
+  template:
+    spec:
+      restartPolicy: OnFailure
+      initContainers:
+        - name: wait-for-postgres
+          image: postgres:16-alpine
+          command:
+            - sh
+            - -c
+            - |
+              until pg_isready -h postgres-auth; do
+                echo "Waiting for postgres-auth..."
+                sleep 2
+              done
+      containers:
+        - name: goose
+          image: gomicro/goose
+          imagePullPolicy: IfNotPresent
+          workingDir: /migrations/auth
+          command:
+            - /bin/goose
+            - postgres
+            - "postgres://${DB_AUTH_USER}:${DB_AUTH_PASSWORD}@postgres-auth:5432/${DB_AUTH_NAME}?sslmode=disable"
+            - up
+          env:
+            - name: DB_AUTH_USER
+              valueFrom:
+                secretKeyRef:
+                  name: merch-secrets
+                  key: DB_AUTH_USER
+            - name: DB_AUTH_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: merch-secrets
+                  key: DB_AUTH_PASSWORD
+            - name: DB_AUTH_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: merch-config
+                  key: DB_AUTH_NAME

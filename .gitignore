@@ -30,3 +30,6 @@ go.work.sum
 # Editor/IDE
 .idea/
 # .vscode/
+
+# K8S
+#k8s/secrets.yaml

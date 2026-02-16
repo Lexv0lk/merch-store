@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: merch-config
+data:
+  DB_AUTH_HOST: "postgres-auth"
+  DB_AUTH_PORT: "5432"
+  DB_AUTH_NAME: "merch_auth_db"
+  DB_STORE_HOST: "postgres-store"
+  DB_STORE_PORT: "5432"
+  DB_STORE_NAME: "merch_store_db"
+  GRPC_AUTH_PORT: ":9090"
+  GRPC_STORE_PORT: ":9091"
+  GRPC_AUTH_HOST: "auth"
+  GRPC_STORE_HOST: "store"
+  HTTP_PORT: ":8080"
