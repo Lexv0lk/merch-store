@@ -337,7 +337,7 @@ minikube tunnel
 
 ## Load Testing
 
-![Load Test Results](https://imgur.com/a/Qhjy5Ub)
+![Load Test Results](https://i.imgur.com/gui553G.png)
 
 ## Make Commands
 
