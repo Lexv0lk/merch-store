@@ -4,7 +4,7 @@ metadata:
   name: gateway
   namespace: merch-store
 spec:
-  type: LoadBalancer
+  type: ClusterIP
   selector:
     app: gateway
   ports:

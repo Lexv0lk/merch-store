@@ -6,7 +6,7 @@ metadata:
   labels:
     app: store
 spec:
-  replicas: 1
+  replicas: 2
   selector:
     matchLabels:
       app: store
@@ -39,8 +39,8 @@ spec:
             periodSeconds: 15
           resources:
             requests:
-              cpu: 50m
-              memory: 64Mi
-            limits:
-              cpu: 200m
+              cpu: 1000m
               memory: 256Mi
+            limits:
+              cpu: 1500m
+              memory: 512Mi

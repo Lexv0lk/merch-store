@@ -6,7 +6,7 @@ metadata:
   labels:
     app: auth
 spec:
-  replicas: 1
+  replicas: 3
   selector:
     matchLabels:
       app: auth
@@ -40,9 +40,9 @@ spec:
             periodSeconds: 15
           resources:
             requests:
-              cpu: 50m
-              memory: 64Mi
+              cpu: 400m
+              memory: 128Mi
             limits:
-              cpu: 200m
+              cpu: 800m
               memory: 256Mi
       

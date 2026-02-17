@@ -6,7 +6,7 @@ metadata:
   labels:
     app: gateway
 spec:
-  replicas: 1
+  replicas: 4
   selector:
     matchLabels:
       app: gateway
@@ -41,8 +41,8 @@ spec:
             periodSeconds: 15
           resources:
             requests:
-              cpu: 50m
+              cpu: 200m
               memory: 64Mi
             limits:
-              cpu: 200m
+              cpu: 400m
               memory: 256Mi

@@ -3,5 +3,5 @@ package grpc
 import "time"
 
 const (
-	contextTimeLimit = 500 * time.Millisecond
+	contextTimeLimit = 5 * time.Second
 )
