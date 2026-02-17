@@ -3,6 +3,7 @@
 [![Go](https://img.shields.io/badge/Go-1.25-00ADD8?style=flat&logo=go)](https://golang.org/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-336791?style=flat&logo=postgresql)](https://www.postgresql.org/)
 [![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?style=flat&logo=docker)](https://www.docker.com/)
+[![Kubernetes](https://img.shields.io/badge/Kubernetes-Minikube-326CE5?style=flat&logo=kubernetes)](https://kubernetes.io/)
 [![CI](https://img.shields.io/github/actions/workflow/status/Lexv0lk/merch-store/go.yml?branch=main&label=CI&logo=github)](https://github.com/Lexv0lk/merch-store/actions)
 [![Coverage](https://img.shields.io/badge/Coverage-85.9%25-brightgreen?style=flat)](./)
 
@@ -20,6 +21,7 @@ A microservices-based merchandise store where employees can purchase items with 
 - **Merchandise Shop** — 10 items available for purchase at fixed coin prices
 - **Database Per Service** — Separate PostgreSQL instances for Auth and Store
 - **Database Migrations** — Automatic schema management with Goose
+- **Kubernetes Ready** — Full k8s manifests for deployment with Minikube (Ingress, StatefulSets, Jobs)
 - **CI/CD** — Automated testing and Docker validation with GitHub Actions
 
 ## Architecture
@@ -267,6 +269,75 @@ GitHub Actions pipeline runs on every push and PR to `main`:
 ├── Makefile
 └── .golangci.yml
 ```
+
+## Kubernetes Deployment
+
+The project can also be deployed to a local Kubernetes cluster using Minikube.
+
+### K8s Structure
+
+```
+k8s/
+├── namespace.yaml              # merch-store namespace
+├── configmap.yaml              # Shared configuration
+├── secrets.yaml                # DB credentials, JWT secret
+├── auth/
+│   ├── deployment.yaml         # Auth service deployment
+│   └── service.yaml            # Auth ClusterIP service
+├── store/
+│   ├── deployment.yaml         # Store service deployment
+│   └── service.yaml            # Store ClusterIP service
+├── gateway/
+│   ├── deployment.yaml         # Gateway deployment
+│   ├── service.yaml            # Gateway ClusterIP service
+│   └── ingress.yaml            # Ingress (merch-store.local)
+├── postgres-auth/
+│   ├── statefulset.yaml        # Auth PostgreSQL StatefulSet
+│   ├── service.yaml            # Auth DB service
+│   └── pvc.yaml                # Auth DB persistent volume
+├── postgres-store/
+│   ├── statefulset.yaml        # Store PostgreSQL StatefulSet
+│   ├── service.yaml            # Store DB service
+│   └── pvc.yaml                # Store DB persistent volume
+└── migrations/
+    ├── job-auth.yaml           # Auth DB migration Job
+    └── job-store.yaml          # Store DB migration Job
+```
+
+### Running with Minikube
+
+1. **Install and start Minikube:**
+```bash
+minikube start
+```
+
+2. **Enable the Ingress addon:**
+```bash
+minikube addons enable ingress
+```
+
+3. **Apply all manifests:**
+```bash
+make k8s-deploy
+```
+
+4. **Start Minikube tunnel** (requires admin/root privileges):
+```bash
+minikube tunnel
+```
+
+5. **Add the hostname to your `hosts` file:**
+```
+127.0.0.1 merch-store.local
+```
+- **Windows:** `C:\Windows\System32\drivers\etc\hosts`
+- **Linux/macOS:** `/etc/hosts`
+
+6. **The API is now available at `http://merch-store.local`**
+
+## Load Testing
+
+![Load Test Results](https://imgur.com/a/Qhjy5Ub)
 
 ## Make Commands
 
