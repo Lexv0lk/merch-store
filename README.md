@@ -123,21 +123,6 @@ curl http://localhost:8080/api/buy/t-shirt \
 | hoody | 300 |
 | pink-hoody | 500 |
 
-## Tech Stack
-
-| Component | Technology | Purpose |
-|-----------|------------|---------|
-| **Language** | Go 1.25 | Core application |
-| **HTTP Framework** | Gin | REST API Gateway |
-| **RPC Framework** | gRPC + Protobuf | Inter-service communication |
-| **Database** | PostgreSQL 16 | Persistent storage |
-| **Migrations** | Goose | Schema management |
-| **Auth** | JWT (HS256) + Argon2id | Authentication & password hashing |
-| **Testing** | testify + testcontainers | Unit & integration tests |
-| **Mocking** | golang/mock + pgxmock | Interface mocking |
-| **Linting** | golangci-lint | Code quality |
-| **Containerization** | Docker Compose | Deployment & local development |
-
 ## Getting Started
 
 ### Prerequisites
@@ -166,19 +151,40 @@ make build-app-up
 
 4. **The API is now available at `http://localhost:8080`**
 
-### Development Setup
+## Kubernetes Deployment
 
-1. **Start databases only:**
+The project can also be deployed to a local Kubernetes cluster using Minikube.
+
+### Running with Minikube
+
+1. **Install and start Minikube:**
 ```bash
-make infra-up
+minikube start
 ```
 
-2. **Run services locally:**
+2. **Enable the Ingress addon:**
 ```bash
-go run cmd/auth/main.go
-go run cmd/store/main.go
-go run cmd/gateway/main.go
+minikube addons enable ingress
 ```
+
+3. **Apply all manifests:**
+```bash
+make k8s-deploy
+```
+
+4. **Start Minikube tunnel** (requires admin/root privileges):
+```bash
+minikube tunnel
+```
+
+5. **Add the hostname to your `hosts` file:**
+```
+127.0.0.1 merch-store.local
+```
+- **Windows:** `C:\Windows\System32\drivers\etc\hosts`
+- **Linux/macOS:** `/etc/hosts`
+
+6. **The API is now available at `http://merch-store.local`**
 
 ### Environment Variables
 
@@ -220,120 +226,6 @@ GitHub Actions pipeline runs on every push and PR to `main`:
 
 1. **Test** — Runs all tests with race detection, generates coverage report
 2. **Docker Compose** — Validates configuration, builds images, starts services, and verifies health
-
-## Project Structure
-
-```
-├── api/merch/v1/               # Protobuf definitions
-│   ├── auth.proto
-│   └── store.proto
-├── build/package/              # Dockerfiles per service
-│   ├── auth/
-│   ├── gateway/
-│   └── store/
-├── cmd/                        # Service entry points
-│   ├── auth/
-│   ├── gateway/
-│   └── store/
-├── gen/                        # Generated code (proto stubs, mocks)
-│   ├── merch/v1/
-│   └── mocks/
-├── internal/
-│   ├── auth/                   # Auth microservice
-│   │   ├── application/        #   Use cases
-│   │   ├── bootstrap/          #   Init & config
-│   │   ├── domain/             #   Interfaces & entities
-│   │   ├── grpc/               #   gRPC handlers
-│   │   └── infrastructure/     #   PostgreSQL repos
-│   ├── gateway/                # API Gateway
-│   │   ├── bootstrap/
-│   │   ├── domain/
-│   │   ├── grpc/               #   gRPC client adapters
-│   │   └── infrastructure/     #   HTTP handlers & middleware
-│   ├── pkg/                    # Shared utilities
-│   │   ├── database/
-│   │   ├── env/
-│   │   ├── jwt/
-│   │   └── logging/
-│   └── store/                  # Store microservice
-│       ├── application/
-│       ├── bootstrap/
-│       ├── domain/
-│       ├── grpc/
-│       └── infrastructure/
-├── migrations/                 # Goose SQL migrations
-│   ├── auth/
-│   └── store/
-├── tests/integration/          # Integration tests
-├── docker-compose.yml
-├── Makefile
-└── .golangci.yml
-```
-
-## Kubernetes Deployment
-
-The project can also be deployed to a local Kubernetes cluster using Minikube.
-
-### K8s Structure
-
-```
-k8s/
-├── namespace.yaml              # merch-store namespace
-├── configmap.yaml              # Shared configuration
-├── secrets.yaml                # DB credentials, JWT secret
-├── auth/
-│   ├── deployment.yaml         # Auth service deployment
-│   └── service.yaml            # Auth ClusterIP service
-├── store/
-│   ├── deployment.yaml         # Store service deployment
-│   └── service.yaml            # Store ClusterIP service
-├── gateway/
-│   ├── deployment.yaml         # Gateway deployment
-│   ├── service.yaml            # Gateway ClusterIP service
-│   └── ingress.yaml            # Ingress (merch-store.local)
-├── postgres-auth/
-│   ├── statefulset.yaml        # Auth PostgreSQL StatefulSet
-│   ├── service.yaml            # Auth DB service
-│   └── pvc.yaml                # Auth DB persistent volume
-├── postgres-store/
-│   ├── statefulset.yaml        # Store PostgreSQL StatefulSet
-│   ├── service.yaml            # Store DB service
-│   └── pvc.yaml                # Store DB persistent volume
-└── migrations/
-    ├── job-auth.yaml           # Auth DB migration Job
-    └── job-store.yaml          # Store DB migration Job
-```
-
-### Running with Minikube
-
-1. **Install and start Minikube:**
-```bash
-minikube start
-```
-
-2. **Enable the Ingress addon:**
-```bash
-minikube addons enable ingress
-```
-
-3. **Apply all manifests:**
-```bash
-make k8s-deploy
-```
-
-4. **Start Minikube tunnel** (requires admin/root privileges):
-```bash
-minikube tunnel
-```
-
-5. **Add the hostname to your `hosts` file:**
-```
-127.0.0.1 merch-store.local
-```
-- **Windows:** `C:\Windows\System32\drivers\etc\hosts`
-- **Linux/macOS:** `/etc/hosts`
-
-6. **The API is now available at `http://merch-store.local`**
 
 ## Load Testing
 
